@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CarePoint
 
-## Getting Started
+CarePoint is a Next.js (App Router) app with NextAuth, Supabase, and Resend for feedback email.
 
-First, run the development server:
+## Quick start
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Create `.env.local` using `.env.example` as a template.
 
-## Learn More
+## Supabase setup
 
-To learn more about Next.js, take a look at the following resources:
+1. Create a Supabase project and copy the project URL + anon key.
+2. Paste them into `.env.local` as `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+3. In the SQL editor, run `supabase/schema.sql` to create tables.
+4. Create two storage buckets:
+   - `avatars` (public)
+   - `doctor-licenses` (private recommended)
+5. Optional: add RLS policies (see `supabase/schema.sql` notes).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## NextAuth setup
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Create a GitHub OAuth app and set the callback URL to:
+   - `http://localhost:3000/api/auth/callback/github`
+2. Add `GITHUB_ID` and `GITHUB_SECRET` to `.env.local`.
+3. Set `NEXTAUTH_URL` and `NEXTAUTH_SECRET`.
+   - Generate a secret with `openssl rand -base64 32`.
 
-## Deploy on Vercel
+## Supabase email/password auth
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Sign-up uses `/api/auth/signup` which calls Supabase Auth `signUp`.
+- Sign-in uses NextAuth Credentials provider and Supabase `signInWithPassword`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Admin panel and doctor verification
+
+- Admins review doctor applications at `/admin`.
+- Doctor applicants upload a license at `/doctor/apply`.
+- Admin role is stored in `user_profiles.role` (`patient`, `doctor_pending`, `doctor`, or `admin`).
+  - You can promote a user to admin with:
+    `update user_profiles set role = 'admin' where email = '<email>';`
+- If `doctor-licenses` is private, the admin panel uses signed URLs for license access.
+
+## MFA (email code)
+
+- Admin routes require a one-time email code at `/mfa`.
+- Codes are sent with Resend.
+
+## Resend feedback email
+
+1. Create a Resend API key and add `RESEND_API_KEY` to `.env.local`.
+2. Set `FEEDBACK_TO_EMAIL` to the inbox that should receive feedback.
+3. Optional: update the `from` address in `src/app/api/feedback/route.ts` once your domain is verified.
+
+## Push to GitHub
+
+```bash
+git status
+git add .
+git commit -m "Initial CarePoint app"
+git branch -M main
+git remote add origin <your-repo-url>
+git push -u origin main
+```
+
+That’s it. If you want, I can now hook doctor search + appointments to real DB data.
