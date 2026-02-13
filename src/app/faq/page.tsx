@@ -1,5 +1,7 @@
 import { getServerTranslations } from "@/lib/i18n-server";
 
+export const dynamic = "force-dynamic";
+
 export default async function FaqPage() {
   const t = await getServerTranslations();
 

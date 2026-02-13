@@ -6,6 +6,8 @@ import { getUserProfile } from "@/lib/profiles";
 import { getServerTranslations } from "@/lib/i18n-server";
 import { Avatar } from "@/components/Avatar";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
 

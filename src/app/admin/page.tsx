@@ -6,6 +6,8 @@ import { getUserProfile } from "@/lib/profiles";
 import { getServerTranslations } from "@/lib/i18n-server";
 import { AdminApplications, type Application } from "@/components/AdminApplications";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {

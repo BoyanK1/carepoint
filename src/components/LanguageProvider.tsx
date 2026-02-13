@@ -67,12 +67,18 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   const setLang = useCallback(
     (value: Language) => {
+      if (value === lang) {
+        return;
+      }
+
       // Persist before refresh so server components receive updated cookie.
       persistLanguage(value);
       setLangState(value);
       router.refresh();
+      // Force a full server render so cookie-based translations update consistently.
+      window.setTimeout(() => window.location.reload(), 0);
     },
-    [router]
+    [lang, router]
   );
 
   const t = useCallback(
