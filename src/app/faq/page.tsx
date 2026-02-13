@@ -1,22 +1,22 @@
-import { getServerTranslations } from "@/lib/i18n-server";
+"use client";
 
-export const dynamic = "force-dynamic";
+import { useLanguage } from "@/components/LanguageProvider";
 
-export default async function FaqPage() {
-  const t = await getServerTranslations();
+export default function FaqPage() {
+  const { t } = useLanguage();
 
   const items = [
     {
-      question: t.faqQ1,
-      answer: t.faqA1,
+      question: t("faqQ1"),
+      answer: t("faqA1"),
     },
     {
-      question: t.faqQ2,
-      answer: t.faqA2,
+      question: t("faqQ2"),
+      answer: t("faqA2"),
     },
     {
-      question: t.faqQ3,
-      answer: t.faqA3,
+      question: t("faqQ3"),
+      answer: t("faqA3"),
     },
   ];
 
@@ -24,10 +24,10 @@ export default async function FaqPage() {
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-6 py-12">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          {t.faqBadge}
+          {t("faqBadge")}
         </p>
-        <h1 className="text-3xl font-semibold text-slate-900">{t.faqTitle}</h1>
-        <p className="text-slate-600">{t.faqSubtitle}</p>
+        <h1 className="text-3xl font-semibold text-slate-900">{t("faqTitle")}</h1>
+        <p className="text-slate-600">{t("faqSubtitle")}</p>
       </header>
 
       <section className="grid gap-4">
