@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
+import { useLanguage } from "@/components/LanguageProvider";
 
 interface NavbarUser {
   name?: string | null;
@@ -17,6 +18,7 @@ interface NavbarClientProps {
 
 export function NavbarClient({ user }: NavbarClientProps) {
   const [scrolled, setScrolled] = useState(false);
+  const { t } = useLanguage();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 12);
@@ -29,54 +31,71 @@ export function NavbarClient({ user }: NavbarClientProps) {
     <header
       className={`sticky top-0 z-50 transition ${
         scrolled
-          ? "border-b border-slate-200 bg-white/80 backdrop-blur-md shadow-sm"
-          : "bg-transparent"
+          ? "border-b border-slate-200 bg-white/95 backdrop-blur-md shadow-sm"
+          : "border-b border-slate-200/60 bg-white/80 backdrop-blur-sm"
       }`}
     >
-      <div className="mx-auto grid w-full max-w-6xl grid-cols-[auto_1fr_auto] items-center px-6 py-4">
+      <div className="mx-auto flex w-full max-w-6xl items-center px-6 py-4">
         <Link href="/" className="flex items-center gap-3">
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-slate-900 via-slate-700 to-slate-500 text-xs font-semibold text-white">
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-slate-900 via-slate-700 to-slate-500 text-xs font-semibold text-white shadow-sm">
             CP
           </span>
-          <span className="text-lg font-semibold text-slate-900">CarePoint</span>
+          <span className="text-lg font-semibold leading-none tracking-tight text-slate-900">
+            CarePoint
+          </span>
         </Link>
 
-        <nav className="flex items-center justify-center gap-6 text-sm font-medium text-slate-600">
-          <Link href="/doctors" className="transition hover:text-slate-900">
-            Doctors
-          </Link>
-          <Link href="/doctor/apply" className="transition hover:text-slate-900">
-            Become a doctor
-          </Link>
-          {user && (
-            <Link href="/dashboard" className="transition hover:text-slate-900">
-              Dashboard
-            </Link>
-          )}
-          {user?.role === "admin" && (
-            <Link href="/admin" className="transition hover:text-slate-900">
-              Admin
-            </Link>
-          )}
-        </nav>
+        <div className="flex-1" />
 
-        <div className="flex items-center justify-end">
+        <div className="ml-auto flex items-center gap-3">
+          <nav className="hidden items-center justify-end md:flex">
+            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-2 py-1 text-sm font-medium text-slate-700 shadow-sm">
+              <Link
+                href="/doctors"
+                className="rounded-full px-3 py-1 transition hover:bg-slate-100 hover:text-slate-900"
+              >
+                {t("navDoctors")}
+              </Link>
+              <Link
+                href="/doctor/apply"
+                className="rounded-full px-3 py-1 transition hover:bg-slate-100 hover:text-slate-900"
+              >
+                {t("navBecomeDoctor")}
+              </Link>
+              {user && (
+                <Link
+                  href="/dashboard"
+                  className="rounded-full px-3 py-1 transition hover:bg-slate-100 hover:text-slate-900"
+                >
+                  {t("navDashboard")}
+                </Link>
+              )}
+              {user?.role === "admin" && (
+                <Link
+                  href="/admin"
+                  className="rounded-full px-3 py-1 transition hover:bg-slate-100 hover:text-slate-900"
+                >
+                  {t("navAdmin")}
+                </Link>
+              )}
+            </div>
+          </nav>
           {user ? (
             <Link
               href="/profile"
-              className="flex items-center gap-3 rounded-full border border-slate-200 px-3 py-1 transition hover:border-slate-300"
+              className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-3 py-1 transition hover:border-slate-300"
             >
               <Avatar name={user.name} src={user.avatarUrl} size={28} />
               <span className="text-sm font-medium text-slate-700">
-                {user.name || user.email || "Account"}
+                {user.name || user.email || t("navAccount")}
               </span>
             </Link>
           ) : (
             <Link
               href="/auth"
-              className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
             >
-              Sign in
+              {t("navSignIn")}
             </Link>
           )}
         </div>

@@ -3,6 +3,14 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
+const MAX_LICENSE_BYTES = 8 * 1024 * 1024;
+const ALLOWED_LICENSE_TYPES = new Map([
+  ["application/pdf", "pdf"],
+  ["image/jpeg", "jpg"],
+  ["image/png", "png"],
+  ["image/webp", "webp"],
+]);
+
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -29,8 +37,30 @@ export async function POST(request: Request) {
     );
   }
 
+  if (specialty.length > 120 || city.length > 120) {
+    return NextResponse.json(
+      { error: "Specialty and city must be under 120 characters." },
+      { status: 400 }
+    );
+  }
+
+  if (license.size > MAX_LICENSE_BYTES) {
+    return NextResponse.json(
+      { error: "License file is too large. Max size is 8MB." },
+      { status: 400 }
+    );
+  }
+
+  const extension = ALLOWED_LICENSE_TYPES.get(license.type);
+  if (!extension) {
+    return NextResponse.json(
+      { error: "Unsupported license file type." },
+      { status: 400 }
+    );
+  }
+
   const buffer = Buffer.from(await license.arrayBuffer());
-  const filePath = `${session.user.id}/${Date.now()}-${license.name}`;
+  const filePath = `${session.user.id}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
 
   const upload = await admin.storage
     .from("doctor-licenses")

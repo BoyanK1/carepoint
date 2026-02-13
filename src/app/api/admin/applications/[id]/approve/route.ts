@@ -1,16 +1,37 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getUserProfile } from "@/lib/profiles";
+import { verifyMfaToken } from "@/lib/mfa-token";
 
 export async function POST(
   _request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await context.params;
+  if (!/^[0-9a-fA-F-]{36}$/.test(id)) {
+    return NextResponse.json({ error: "Invalid application ID." }, { status: 400 });
+  }
+
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const mfaToken = (await cookies()).get("mfa_verified")?.value;
+  let hasMfa = false;
+  if (mfaToken) {
+    try {
+      hasMfa = await verifyMfaToken(mfaToken, session.user.id);
+    } catch {
+      hasMfa = false;
+    }
+  }
+
+  if (!hasMfa) {
+    return NextResponse.json({ error: "MFA verification required." }, { status: 401 });
   }
 
   const profile = await getUserProfile(session.user.id);
@@ -29,7 +50,7 @@ export async function POST(
   const { data, error } = await admin
     .from("doctor_applications")
     .update({ status: "approved" })
-    .eq("id", params.id)
+    .eq("id", id)
     .select("user_id, specialty, city")
     .single();
 
@@ -44,10 +65,7 @@ export async function POST(
     verified: true,
   });
 
-  await admin
-    .from("user_profiles")
-    .update({ role: "doctor" })
-    .eq("id", data.user_id);
+  await admin.from("user_profiles").update({ role: "doctor" }).eq("id", data.user_id);
 
   return NextResponse.json({ ok: true });
 }

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getUserProfile } from "@/lib/profiles";
+import { getServerTranslations } from "@/lib/i18n-server";
 import { AdminApplications, type Application } from "@/components/AdminApplications";
 
 export default async function AdminPage() {
@@ -11,6 +12,7 @@ export default async function AdminPage() {
     redirect("/auth");
   }
 
+  const t = await getServerTranslations();
   const profile = await getUserProfile(session.user.id);
   if (!profile || profile.role !== "admin") {
     redirect("/dashboard");
@@ -20,11 +22,8 @@ export default async function AdminPage() {
   if (!admin) {
     return (
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-12">
-        <h1 className="text-3xl font-semibold text-slate-900">Admin panel</h1>
-        <p className="text-slate-600">
-          Supabase admin key is missing. Please set
-          <span className="font-semibold"> SUPABASE_SERVICE_ROLE_KEY</span>.
-        </p>
+        <h1 className="text-3xl font-semibold text-slate-900">{t.adminBadge}</h1>
+        <p className="text-slate-600">{t.adminMissingKey}</p>
       </div>
     );
   }
@@ -69,14 +68,10 @@ export default async function AdminPage() {
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-12">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Admin panel
+          {t.adminBadge}
         </p>
-        <h1 className="text-3xl font-semibold text-slate-900">
-          Review doctor applications
-        </h1>
-        <p className="text-slate-600">
-          Approve verified doctors or reject incomplete submissions.
-        </p>
+        <h1 className="text-3xl font-semibold text-slate-900">{t.adminTitle}</h1>
+        <p className="text-slate-600">{t.adminSubtitle}</p>
       </header>
 
       <AdminApplications applications={applications} />

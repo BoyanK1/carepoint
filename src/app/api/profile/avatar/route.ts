@@ -3,6 +3,14 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
+const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
+const ALLOWED_AVATAR_TYPES = new Map([
+  ["image/jpeg", "jpg"],
+  ["image/png", "png"],
+  ["image/webp", "webp"],
+  ["image/gif", "gif"],
+]);
+
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -24,12 +32,27 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Avatar file is required." }, { status: 400 });
   }
 
+  if (avatar.size > MAX_AVATAR_BYTES) {
+    return NextResponse.json(
+      { error: "Avatar is too large. Max size is 2MB." },
+      { status: 400 }
+    );
+  }
+
+  const extension = ALLOWED_AVATAR_TYPES.get(avatar.type);
+  if (!extension) {
+    return NextResponse.json(
+      { error: "Unsupported avatar file type." },
+      { status: 400 }
+    );
+  }
+
   const buffer = Buffer.from(await avatar.arrayBuffer());
-  const filePath = `${session.user.id}/${Date.now()}-${avatar.name}`;
+  const filePath = `${session.user.id}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
 
   const upload = await admin.storage.from("avatars").upload(filePath, buffer, {
     contentType: avatar.type,
-    upsert: true,
+    upsert: false,
   });
 
   if (upload.error) {

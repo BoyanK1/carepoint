@@ -1,7 +1,7 @@
 import type { NextAuthOptions } from "next-auth";
 import GitHubProvider from "next-auth/providers/github";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { supabase } from "@/lib/supabase/client";
+import { getSupabaseClient } from "@/lib/supabase/client";
 
 export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt" },
@@ -24,6 +24,7 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
+        const supabase = getSupabaseClient();
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,

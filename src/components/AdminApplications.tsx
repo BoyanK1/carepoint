@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 
 export interface Application {
   id: string;
@@ -16,6 +17,7 @@ interface AdminApplicationsProps {
 }
 
 export function AdminApplications({ applications }: AdminApplicationsProps) {
+  const { t } = useLanguage();
   const [items, setItems] = useState(applications);
   const [error, setError] = useState<string | null>(null);
   const validItems = items.filter(
@@ -26,7 +28,7 @@ export function AdminApplications({ applications }: AdminApplicationsProps) {
     setError(null);
 
     if (!id) {
-      setError("Application ID is missing.");
+      setError(t("adminMissingId"));
       return;
     }
 
@@ -36,7 +38,7 @@ export function AdminApplications({ applications }: AdminApplicationsProps) {
 
     if (!response.ok) {
       const payload = await response.json().catch(() => null);
-      setError(payload?.error || "Action failed.");
+      setError(payload?.error || t("adminActionFailed"));
       return;
     }
 
@@ -46,7 +48,7 @@ export function AdminApplications({ applications }: AdminApplicationsProps) {
   if (validItems.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-sm text-slate-500">
-        No pending applications right now.
+        {t("adminNoApps")}
       </div>
     );
   }
@@ -61,11 +63,11 @@ export function AdminApplications({ applications }: AdminApplicationsProps) {
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-sm font-semibold text-slate-900">
-                {application.specialty || "Unknown specialty"} ·{" "}
-                {application.city || "Unknown city"}
+                {application.specialty || t("adminUnknownSpecialty")} ·{" "}
+                {application.city || t("adminUnknownCity")}
               </p>
               <p className="text-xs text-slate-500">
-                Applicant ID: {application.user_id ?? "N/A"}
+                {t("adminApplicantId")} {application.user_id ?? t("commonNotAvailable")}
               </p>
               {application.license_url && (
                 <a
@@ -74,7 +76,7 @@ export function AdminApplications({ applications }: AdminApplicationsProps) {
                   rel="noreferrer"
                   className="mt-2 inline-block text-xs font-medium text-slate-700 underline"
                 >
-                  View license
+                  {t("adminViewLicense")}
                 </a>
               )}
             </div>
@@ -83,13 +85,13 @@ export function AdminApplications({ applications }: AdminApplicationsProps) {
                 onClick={() => updateStatus(application.id, "approve")}
                 className="rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-500"
               >
-                Approve
+                {t("adminApprove")}
               </button>
               <button
                 onClick={() => updateStatus(application.id, "reject")}
                 className="rounded-full border border-rose-200 px-4 py-2 text-xs font-semibold text-rose-600 transition hover:border-rose-300"
               >
-                Reject
+                {t("adminReject")}
               </button>
             </div>
           </div>

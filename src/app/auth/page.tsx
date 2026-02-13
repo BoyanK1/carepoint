@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
+import { useLanguage } from "@/components/LanguageProvider";
 
 export default function AuthPage() {
+  const { t } = useLanguage();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -25,7 +27,7 @@ export default function AuthPage() {
     });
 
     if (result?.error) {
-      setError("Invalid email or password.");
+      setError(t("authInvalidCredentials"));
     }
   };
 
@@ -43,12 +45,12 @@ export default function AuthPage() {
 
       if (!response.ok) {
         const payload = await response.json().catch(() => null);
-        throw new Error(payload?.error || "Sign up failed.");
+        throw new Error(payload?.error || t("authSignUpFailed"));
       }
 
-      setMessage("Account created. Check your email to confirm, then sign in.");
+      setMessage(t("authSuccessMessage"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unexpected error");
+      setError(err instanceof Error ? err.message : t("authUnexpectedError"));
     }
   };
 
@@ -56,27 +58,21 @@ export default function AuthPage() {
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 py-12">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          CarePoint access
+          {t("authBadge")}
         </p>
         <h1 className="text-3xl font-semibold text-slate-900">
-          Sign in to your account
+          {t("authTitle")}
         </h1>
-        <p className="text-slate-600">
-          Use your email and password to reach appointments and profile tools.
-        </p>
+        <p className="text-slate-600">{t("authSubtitle")}</p>
       </header>
 
       <div className="grid gap-6 md:grid-cols-[1fr_1fr]">
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-900">
-            Returning patients
-          </h2>
-          <p className="mt-2 text-sm text-slate-600">
-            Secure sign-in with email and password.
-          </p>
+          <h2 className="text-lg font-semibold text-slate-900">{t("authReturningTitle")}</h2>
+          <p className="mt-2 text-sm text-slate-600">{t("authReturningBody")}</p>
           <form onSubmit={handleCredentialsSignIn} className="mt-4 grid gap-4">
             <label className="grid gap-2 text-sm font-medium text-slate-700">
-              Email
+              {t("authEmail")}
               <input
                 type="email"
                 value={email}
@@ -86,7 +82,7 @@ export default function AuthPage() {
               />
             </label>
             <label className="grid gap-2 text-sm font-medium text-slate-700">
-              Password
+              {t("authPassword")}
               <input
                 type="password"
                 value={password}
@@ -99,28 +95,26 @@ export default function AuthPage() {
               type="submit"
               className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
             >
-              Sign in
+              {t("authSignIn")}
             </button>
           </form>
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-900">Create account</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Sign up with email and password.
-          </p>
+          <h2 className="text-lg font-semibold text-slate-900">{t("authCreateTitle")}</h2>
+          <p className="mt-1 text-sm text-slate-600">{t("authCreateBody")}</p>
           <form onSubmit={handleSignUp} className="mt-4 grid gap-4">
             <label className="grid gap-2 text-sm font-medium text-slate-700">
-              Name
+              {t("authName")}
               <input
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 className="rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-slate-400 focus:outline-none"
-                placeholder="Optional"
+                placeholder={t("commonOptional")}
               />
             </label>
             <label className="grid gap-2 text-sm font-medium text-slate-700">
-              Email
+              {t("authEmail")}
               <input
                 type="email"
                 value={email}
@@ -130,7 +124,7 @@ export default function AuthPage() {
               />
             </label>
             <label className="grid gap-2 text-sm font-medium text-slate-700">
-              Password
+              {t("authPassword")}
               <input
                 type="password"
                 value={password}
@@ -143,15 +137,14 @@ export default function AuthPage() {
               type="submit"
               className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
             >
-              Create account
+              {t("authCreateButton")}
             </button>
           </form>
         </section>
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
-        MFA protection is required for admin-only actions. You will receive a
-        one-time code by email when needed.
+        {t("authMfaNote")}
       </div>
 
       {message && (

@@ -56,6 +56,16 @@ create table if not exists doctor_profiles (
   verified boolean not null default false
 );
 
+create table if not exists doctor_reviews (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  doctor_profile_id uuid not null references doctor_profiles(id) on delete cascade,
+  reviewer_id uuid not null references auth.users(id) on delete cascade,
+  rating int not null check (rating >= 1 and rating <= 5),
+  comment text not null check (char_length(trim(comment)) >= 5),
+  unique (doctor_profile_id, reviewer_id)
+);
+
 create table if not exists patient_history (
   id uuid primary key default gen_random_uuid(),
   patient_id uuid references patients(id) on delete cascade,
@@ -63,6 +73,12 @@ create table if not exists patient_history (
   recorded_at timestamptz not null default now(),
   notes text
 );
+
+create index if not exists idx_doctor_reviews_doctor_profile_id
+  on doctor_reviews(doctor_profile_id);
+
+create index if not exists idx_doctor_reviews_reviewer_id
+  on doctor_reviews(reviewer_id);
 
 -- RLS notes:
 -- Enable row level security and add policies that fit your app.

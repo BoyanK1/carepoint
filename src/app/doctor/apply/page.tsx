@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 
 export default function DoctorApplyPage() {
+  const { t } = useLanguage();
   const [specialty, setSpecialty] = useState("");
   const [city, setCity] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -14,7 +16,7 @@ export default function DoctorApplyPage() {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!file) {
-      setError("Please upload a license document.");
+      setError(t("applyMissingLicense"));
       return;
     }
 
@@ -34,7 +36,7 @@ export default function DoctorApplyPage() {
 
       if (!response.ok) {
         const payload = await response.json().catch(() => null);
-        throw new Error(payload?.error || "Application failed.");
+        throw new Error(payload?.error || t("applyError"));
       }
 
       setStatus("success");
@@ -43,7 +45,7 @@ export default function DoctorApplyPage() {
       setFile(null);
     } catch (err) {
       setStatus("error");
-      setError(err instanceof Error ? err.message : "Unexpected error");
+      setError(err instanceof Error ? err.message : t("authUnexpectedError"));
     }
   };
 
@@ -51,14 +53,12 @@ export default function DoctorApplyPage() {
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Doctor verification
+          {t("applyBadge")}
         </p>
         <h1 className="text-3xl font-semibold text-slate-900">
-          Apply to join CarePoint
+          {t("applyTitle")}
         </h1>
-        <p className="text-slate-600">
-          Upload your medical license so our team can verify your credentials.
-        </p>
+        <p className="text-slate-600">{t("applySubtitle")}</p>
       </header>
 
       <form
@@ -67,28 +67,28 @@ export default function DoctorApplyPage() {
       >
         <div className="grid gap-4 md:grid-cols-2">
           <label className="grid gap-2 text-sm font-medium text-slate-700">
-            Specialty
+            {t("applySpecialtyLabel")}
             <input
               value={specialty}
               onChange={(event) => setSpecialty(event.target.value)}
               className="rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-slate-400 focus:outline-none"
-              placeholder="Cardiology"
+              placeholder={t("applySpecialtyPlaceholder")}
               required
             />
           </label>
           <label className="grid gap-2 text-sm font-medium text-slate-700">
-            City / Region
+            {t("applyCityLabel")}
             <input
               value={city}
               onChange={(event) => setCity(event.target.value)}
               className="rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-slate-400 focus:outline-none"
-              placeholder="Sofia"
+              placeholder={t("applyCityPlaceholder")}
               required
             />
           </label>
         </div>
         <label className="mt-4 grid gap-2 text-sm font-medium text-slate-700">
-          Medical license (PDF or image)
+          {t("applyLicenseLabel")}
           <input
             type="file"
             accept="application/pdf,image/*"
@@ -104,11 +104,11 @@ export default function DoctorApplyPage() {
             disabled={status === "sending"}
             className="rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {status === "sending" ? "Submitting..." : "Submit application"}
+            {status === "sending" ? t("applySubmitting") : t("applySubmit")}
           </button>
           {status === "success" && (
             <span className="text-sm font-medium text-emerald-600">
-              Application received. We will review your license.
+              {t("applySuccess")}
             </span>
           )}
           {status === "error" && (

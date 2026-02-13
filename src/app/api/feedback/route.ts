@@ -3,8 +3,44 @@ import { Resend } from "resend";
 import { FeedbackEmail } from "@/emails/FeedbackEmail";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+const FEEDBACK_WINDOW_MS = 10 * 60 * 1000;
+const FEEDBACK_MAX_REQUESTS = 5;
+const feedbackRateMap = new Map<string, { count: number; startedAt: number }>();
+
+function getClientIdentifier(request: Request) {
+  const forwardedFor = request.headers.get("x-forwarded-for");
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const ip = forwardedFor?.split(",")[0]?.trim();
+  return ip || forwardedHost || "unknown";
+}
+
+function isRateLimited(identifier: string) {
+  const now = Date.now();
+  const current = feedbackRateMap.get(identifier);
+  if (!current || now - current.startedAt > FEEDBACK_WINDOW_MS) {
+    feedbackRateMap.set(identifier, { count: 1, startedAt: now });
+    return false;
+  }
+
+  if (current.count >= FEEDBACK_MAX_REQUESTS) {
+    return true;
+  }
+
+  feedbackRateMap.set(identifier, {
+    count: current.count + 1,
+    startedAt: current.startedAt,
+  });
+  return false;
+}
 
 export async function POST(request: Request) {
+  if (isRateLimited(getClientIdentifier(request))) {
+    return NextResponse.json(
+      { error: "Too many feedback requests. Please try again later." },
+      { status: 429 }
+    );
+  }
+
   const body = await request.json().catch(() => null);
 
   const message = typeof body?.message === "string" ? body.message.trim() : "";
