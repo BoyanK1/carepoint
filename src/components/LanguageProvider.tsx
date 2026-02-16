@@ -8,7 +8,6 @@ import {
   useMemo,
   useState,
 } from "react";
-import { useRouter } from "next/navigation";
 import {
   translations,
   type Language,
@@ -48,7 +47,6 @@ function persistLanguage(lang: Language) {
 }
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
   const [lang, setLangState] = useState<Language>(() => {
     if (typeof window === "undefined") {
       return "en";
@@ -71,14 +69,10 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // Persist before refresh so server components receive updated cookie.
       persistLanguage(value);
       setLangState(value);
-      router.refresh();
-      // Force a full server render so cookie-based translations update consistently.
-      window.setTimeout(() => window.location.reload(), 0);
     },
-    [lang, router]
+    [lang]
   );
 
   const t = useCallback(
