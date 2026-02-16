@@ -36,7 +36,7 @@ export function NavbarClient({ user }: NavbarClientProps) {
       }`}
     >
       <div className="mx-auto w-full max-w-6xl px-6">
-        <div className="flex items-center py-4">
+        <div className="flex items-center gap-3 py-4">
           <Link href="/" className="flex items-center gap-3">
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-slate-900 via-slate-700 to-slate-500 text-xs font-semibold text-white shadow-sm">
               CP
@@ -48,25 +48,25 @@ export function NavbarClient({ user }: NavbarClientProps) {
 
           <div className="flex-1" />
 
-          <div className="ml-auto flex items-center gap-3">
-            <nav className="hidden items-center justify-end md:flex">
+          <div className="ml-auto flex min-w-0 items-center gap-3">
+            <nav className="hidden min-w-0 items-center justify-end md:flex">
               <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-2 py-1 text-sm font-medium text-slate-700 shadow-sm">
                 <Link
                   href="/doctors"
-                  className="rounded-full px-3 py-1 transition hover:bg-slate-100 hover:text-slate-900"
+                  className="rounded-full px-3 py-1 whitespace-nowrap transition hover:bg-slate-100 hover:text-slate-900"
                 >
                   {t("navDoctors")}
                 </Link>
                 <Link
                   href="/doctor/apply"
-                  className="rounded-full px-3 py-1 transition hover:bg-slate-100 hover:text-slate-900"
+                  className="rounded-full px-3 py-1 whitespace-nowrap transition hover:bg-slate-100 hover:text-slate-900"
                 >
                   {t("navBecomeDoctor")}
                 </Link>
                 {user && (
                   <Link
                     href="/dashboard"
-                    className="rounded-full px-3 py-1 transition hover:bg-slate-100 hover:text-slate-900"
+                    className="rounded-full px-3 py-1 whitespace-nowrap transition hover:bg-slate-100 hover:text-slate-900"
                   >
                     {t("navDashboard")}
                   </Link>
@@ -74,7 +74,7 @@ export function NavbarClient({ user }: NavbarClientProps) {
                 {user && (
                   <Link
                     href="/appointments"
-                    className="rounded-full px-3 py-1 transition hover:bg-slate-100 hover:text-slate-900"
+                    className="rounded-full px-3 py-1 whitespace-nowrap transition hover:bg-slate-100 hover:text-slate-900"
                   >
                     Appointments
                   </Link>
@@ -82,7 +82,7 @@ export function NavbarClient({ user }: NavbarClientProps) {
                 {user && (
                   <Link
                     href="/notifications"
-                    className="rounded-full px-3 py-1 transition hover:bg-slate-100 hover:text-slate-900"
+                    className="rounded-full px-3 py-1 whitespace-nowrap transition hover:bg-slate-100 hover:text-slate-900"
                   >
                     Notifications
                   </Link>
@@ -90,7 +90,7 @@ export function NavbarClient({ user }: NavbarClientProps) {
                 {user?.role === "admin" && (
                   <Link
                     href="/admin"
-                    className="rounded-full px-3 py-1 transition hover:bg-slate-100 hover:text-slate-900"
+                    className="rounded-full px-3 py-1 whitespace-nowrap transition hover:bg-slate-100 hover:text-slate-900"
                   >
                     {t("navAdmin")}
                   </Link>
@@ -100,10 +100,11 @@ export function NavbarClient({ user }: NavbarClientProps) {
             {user ? (
               <Link
                 href="/profile"
-                className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 transition hover:border-slate-300"
+                className="flex max-w-[13.5rem] shrink-0 items-center gap-2 overflow-hidden rounded-full border border-slate-200 bg-white px-2.5 py-1.5 shadow-sm transition hover:border-slate-300"
+                title={user.name || user.email || t("navAccount")}
               >
                 <Avatar name={user.name} src={user.avatarUrl} size={28} />
-                <span className="max-w-24 truncate text-sm font-medium text-slate-700 sm:max-w-none">
+                <span className="max-w-[9rem] truncate text-sm font-medium text-slate-700">
                   {user.name || user.email || t("navAccount")}
                 </span>
               </Link>

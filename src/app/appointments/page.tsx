@@ -23,6 +23,15 @@ interface AppointmentItem {
   } | null;
 }
 
+const filters = ["all", "scheduled", "confirmed", "completed", "cancelled"] as const;
+
+const statusClasses: Record<string, string> = {
+  scheduled: "border-blue-200 bg-blue-50 text-blue-700",
+  confirmed: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  completed: "border-slate-200 bg-slate-100 text-slate-700",
+  cancelled: "border-rose-200 bg-rose-50 text-rose-700",
+};
+
 function toDateTimeLocal(value: string) {
   const date = new Date(value);
   const pad = (num: number) => String(num).padStart(2, "0");
@@ -31,13 +40,24 @@ function toDateTimeLocal(value: string) {
   )}:${pad(date.getMinutes())}`;
 }
 
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
 export default function AppointmentsPage() {
   const { status } = useSession();
   const router = useRouter();
   const [appointments, setAppointments] = useState<AppointmentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState<(typeof filters)[number]>("all");
   const [reschedule, setReschedule] = useState<Record<string, string>>({});
   const [pendingId, setPendingId] = useState<string | null>(null);
 
@@ -77,6 +97,12 @@ export default function AppointmentsPage() {
     }
     return appointments.filter((item) => item.status === filter);
   }, [appointments, filter]);
+
+  const totalCount = appointments.length;
+  const activeCount = appointments.filter((item) =>
+    ["scheduled", "confirmed"].includes(item.status)
+  ).length;
+  const doneCount = appointments.filter((item) => item.status === "completed").length;
 
   async function updateAppointment(id: string, action: "cancel" | "reschedule") {
     setPendingId(id);
@@ -129,32 +155,60 @@ export default function AppointmentsPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-12">
-      <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6 lg:gap-8 lg:py-12">
+      <header className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-slate-100 p-6 shadow-sm sm:p-8">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
           Patient tools
         </p>
-        <h1 className="text-3xl font-semibold text-slate-900">My appointments</h1>
-        <p className="text-slate-600">
-          Cancel or reschedule visits, and quickly rebook with your favorite doctors.
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
+          My appointments
+        </h1>
+        <p className="mt-2 max-w-2xl text-sm text-slate-600 sm:text-base">
+          Manage upcoming visits, adjust appointment times, and keep your favorite doctors one tap
+          away.
         </p>
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-2xl border border-slate-200 bg-white/90 p-4">
+            <p className="text-xs uppercase tracking-wide text-slate-500">All records</p>
+            <p className="mt-1 text-2xl font-semibold text-slate-900">{totalCount}</p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white/90 p-4">
+            <p className="text-xs uppercase tracking-wide text-slate-500">Active</p>
+            <p className="mt-1 text-2xl font-semibold text-slate-900">{activeCount}</p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white/90 p-4">
+            <p className="text-xs uppercase tracking-wide text-slate-500">Completed</p>
+            <p className="mt-1 text-2xl font-semibold text-slate-900">{doneCount}</p>
+          </div>
+        </div>
       </header>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <label className="text-sm font-medium text-slate-700">
-          Filter
-          <select
-            value={filter}
-            onChange={(event) => setFilter(event.target.value)}
-            className="ml-2 rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-900"
-          >
-            <option value="all">All</option>
-            <option value="scheduled">Scheduled</option>
-            <option value="confirmed">Confirmed</option>
-            <option value="completed">Completed</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
-        </label>
+      {error && (
+        <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {error}
+        </p>
+      )}
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+        <div className="flex flex-wrap items-center gap-2">
+          {filters.map((option) => {
+            const isActive = filter === option;
+            return (
+              <button
+                key={option}
+                type="button"
+                onClick={() => setFilter(option)}
+                className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide transition sm:text-sm ${
+                  isActive
+                    ? "bg-slate-900 text-white"
+                    : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"
+                }`}
+              >
+                {option}
+              </button>
+            );
+          })}
+        </div>
       </section>
 
       {loading ? (
@@ -162,100 +216,112 @@ export default function AppointmentsPage() {
           Loading appointments...
         </div>
       ) : filtered.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-sm text-slate-500">
-          No appointments found.
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500">
+          No appointments found for this filter.
         </div>
       ) : (
-        <section className="grid gap-4">
-          {filtered.map((appointment) => (
-            <article
-              key={appointment.id}
-              className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
-            >
-              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    {appointment.status}
-                  </p>
-                  <p className="mt-1 text-lg font-semibold text-slate-900">
-                    {new Date(appointment.startsAt).toLocaleString()}
-                  </p>
-                  <p className="text-sm text-slate-600">
-                    {appointment.doctor?.name || "Doctor"} · {appointment.doctor?.specialty || "N/A"}
-                  </p>
-                  <p className="text-sm text-slate-500">{appointment.reason || "No note"}</p>
+        <section className="grid gap-4 lg:gap-5">
+          {filtered.map((appointment) => {
+            const badgeClass = statusClasses[appointment.status] ?? statusClasses.scheduled;
+            return (
+              <article
+                key={appointment.id}
+                className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-slate-300 sm:p-6"
+              >
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="space-y-2">
+                    <span
+                      className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${badgeClass}`}
+                    >
+                      {appointment.status}
+                    </span>
+                    <p className="text-lg font-semibold text-slate-900 sm:text-xl">
+                      {formatDate(appointment.startsAt)}
+                    </p>
+                    <p className="text-sm text-slate-700">
+                      {appointment.doctor?.name || "Doctor"}
+                      {appointment.doctor?.specialty ? ` · ${appointment.doctor.specialty}` : ""}
+                      {appointment.doctor?.city ? ` · ${appointment.doctor.city}` : ""}
+                    </p>
+                    <p className="text-sm text-slate-500">{appointment.reason || "No note added."}</p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {appointment.doctor && (
+                      <Avatar
+                        name={appointment.doctor.name}
+                        src={appointment.doctor.avatarUrl}
+                        size={42}
+                      />
+                    )}
+                    {appointment.doctor && (
+                      <button
+                        type="button"
+                        onClick={() => void toggleFavorite(appointment)}
+                        className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+                      >
+                        {appointment.doctor.isFavorite ? "Unfavorite" : "Favorite"}
+                      </button>
+                    )}
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  {appointment.doctor && (
-                    <Avatar
-                      name={appointment.doctor.name}
-                      src={appointment.doctor.avatarUrl}
-                      size={40}
-                    />
-                  )}
-                  {appointment.doctor && (
-                    <button
-                      type="button"
-                      onClick={() => void toggleFavorite(appointment)}
-                      className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 transition hover:border-slate-300"
-                    >
-                      {appointment.doctor.isFavorite ? "Unfavorite" : "Favorite"}
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                <Link
-                  href={appointment.doctor ? `/doctors/${appointment.doctor.id}?rebook=1` : "/doctors"}
-                  className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-slate-300"
-                >
-                  Quick rebook
-                </Link>
-
-                {(appointment.status === "scheduled" || appointment.status === "confirmed") && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => void updateAppointment(appointment.id, "cancel")}
-                      disabled={pendingId === appointment.id}
-                      className="rounded-full border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:border-rose-300 disabled:opacity-60"
-                    >
-                      {pendingId === appointment.id ? "Please wait..." : "Cancel"}
-                    </button>
-
-                    <input
-                      type="datetime-local"
-                      value={reschedule[appointment.id] ?? toDateTimeLocal(appointment.startsAt)}
-                      onChange={(event) =>
-                        setReschedule((current) => ({
-                          ...current,
-                          [appointment.id]: event.target.value,
-                        }))
+                <div className="mt-5 grid gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Link
+                      href={
+                        appointment.doctor
+                          ? `/doctors/${appointment.doctor.id}?rebook=1`
+                          : "/doctors"
                       }
-                      className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-700"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => void updateAppointment(appointment.id, "reschedule")}
-                      disabled={pendingId === appointment.id}
-                      className="rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
+                      className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
                     >
-                      Reschedule
-                    </button>
-                  </>
-                )}
-              </div>
-            </article>
-          ))}
-        </section>
-      )}
+                      Quick rebook
+                    </Link>
+                  </div>
 
-      {error && (
-        <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          {error}
-        </p>
+                  {(appointment.status === "scheduled" || appointment.status === "confirmed") && (
+                    <div className="grid gap-2 rounded-2xl border border-slate-200 bg-slate-50/80 p-3 sm:grid-cols-[1fr_auto] sm:items-end">
+                      <label className="grid gap-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Pick new date and time
+                        <input
+                          type="datetime-local"
+                          value={reschedule[appointment.id] ?? toDateTimeLocal(appointment.startsAt)}
+                          onChange={(event) =>
+                            setReschedule((current) => ({
+                              ...current,
+                              [appointment.id]: event.target.value,
+                            }))
+                          }
+                          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-slate-300"
+                        />
+                      </label>
+
+                      <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                        <button
+                          type="button"
+                          onClick={() => void updateAppointment(appointment.id, "cancel")}
+                          disabled={pendingId === appointment.id}
+                          className="rounded-full border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:border-rose-300 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {pendingId === appointment.id ? "Please wait..." : "Cancel"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void updateAppointment(appointment.id, "reschedule")}
+                          disabled={pendingId === appointment.id}
+                          className="rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          Reschedule
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </article>
+            );
+          })}
+        </section>
       )}
     </div>
   );
