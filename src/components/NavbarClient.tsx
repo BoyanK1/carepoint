@@ -71,6 +71,22 @@ export function NavbarClient({ user }: NavbarClientProps) {
                     {t("navDashboard")}
                   </Link>
                 )}
+                {user && (
+                  <Link
+                    href="/appointments"
+                    className="rounded-full px-3 py-1 transition hover:bg-slate-100 hover:text-slate-900"
+                  >
+                    Appointments
+                  </Link>
+                )}
+                {user && (
+                  <Link
+                    href="/notifications"
+                    className="rounded-full px-3 py-1 transition hover:bg-slate-100 hover:text-slate-900"
+                  >
+                    Notifications
+                  </Link>
+                )}
                 {user?.role === "admin" && (
                   <Link
                     href="/admin"
@@ -123,6 +139,22 @@ export function NavbarClient({ user }: NavbarClientProps) {
                   className="rounded-full px-3 py-1.5 whitespace-nowrap transition hover:bg-slate-100 hover:text-slate-900"
                 >
                   {t("navDashboard")}
+                </Link>
+              )}
+              {user && (
+                <Link
+                  href="/appointments"
+                  className="rounded-full px-3 py-1.5 whitespace-nowrap transition hover:bg-slate-100 hover:text-slate-900"
+                >
+                  Appointments
+                </Link>
+              )}
+              {user && (
+                <Link
+                  href="/notifications"
+                  className="rounded-full px-3 py-1.5 whitespace-nowrap transition hover:bg-slate-100 hover:text-slate-900"
+                >
+                  Notifications
                 </Link>
               )}
               {user?.role === "admin" && (

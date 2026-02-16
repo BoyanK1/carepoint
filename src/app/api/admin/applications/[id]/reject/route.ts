@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getUserProfile } from "@/lib/profiles";
 import { verifyMfaToken } from "@/lib/mfa-token";
+import { createNotification, sendStatusEmail } from "@/lib/notifications";
 
 export async function POST(
   _request: Request,
@@ -48,13 +49,55 @@ export async function POST(
     );
   }
 
-  const { error } = await admin
+  const { data, error } = await admin
     .from("doctor_applications")
     .update({ status: "rejected" })
-    .eq("id", id);
+    .eq("id", id)
+    .select("user_id, specialty, city")
+    .single();
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error || !data?.user_id) {
+    return NextResponse.json({ error: error?.message ?? "Not found" }, { status: 404 });
+  }
+
+  await admin
+    .from("user_profiles")
+    .update({ role: "patient" })
+    .eq("id", data.user_id)
+    .eq("role", "doctor_pending");
+
+  await admin.from("admin_audit_logs").insert({
+    admin_user_id: session.user.id,
+    target_user_id: data.user_id,
+    application_id: id,
+    action: "application_rejected",
+    metadata: {
+      specialty: data.specialty,
+      city: data.city,
+    },
+  });
+
+  await createNotification(admin, {
+    userId: data.user_id,
+    category: "doctor-application",
+    title: "Doctor application rejected",
+    message: "Your application was rejected. Please re-apply with a clear valid license.",
+    entityType: "doctor_application",
+    entityId: id,
+  });
+
+  const { data: applicantProfile } = await admin
+    .from("user_profiles")
+    .select("email, full_name")
+    .eq("id", data.user_id)
+    .maybeSingle();
+
+  if (applicantProfile?.email) {
+    await sendStatusEmail({
+      to: applicantProfile.email,
+      subject: "CarePoint doctor application update",
+      text: `Hi ${applicantProfile.full_name || "doctor"}, your application was rejected. Please submit updated license proof.`,
+    }).catch(() => null);
   }
 
   return NextResponse.json({ ok: true });

@@ -1,18 +1,11 @@
 "use client";
 
-import { useCallback, useMemo, useState, useEffect } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/Avatar";
 import { useLanguage } from "@/components/LanguageProvider";
-
-interface DoctorReview {
-  id: string;
-  rating: number;
-  comment: string;
-  createdAt: string;
-  reviewerName: string;
-}
 
 interface Doctor {
   id: string;
@@ -23,41 +16,46 @@ interface Doctor {
   avatarUrl: string | null;
   ratingAverage: number | null;
   ratingCount: number;
-  latestReviews: DoctorReview[];
+  soonestAvailableAt: string | null;
+  isFavorite: boolean;
 }
 
-interface ReviewFormState {
-  rating: number;
-  comment: string;
-  submitting: boolean;
-  error: string | null;
-  success: string | null;
+type SortMode = "relevance" | "rating" | "nearest" | "soonest";
+
+function normalize(value: string | null | undefined) {
+  return (value ?? "").trim().toLowerCase();
 }
 
-const defaultReviewForm: ReviewFormState = {
-  rating: 5,
-  comment: "",
-  submitting: false,
-  error: null,
-  success: null,
-};
-
-function renderStars(value: number) {
-  return "★".repeat(value) + "☆".repeat(5 - value);
+function cityScore(doctorCity: string | null, targetCity: string) {
+  if (!targetCity) {
+    return 2;
+  }
+  const city = normalize(doctorCity);
+  const target = normalize(targetCity);
+  if (!city || !target) {
+    return 3;
+  }
+  if (city === target) {
+    return 0;
+  }
+  if (city.startsWith(target) || city.includes(target)) {
+    return 1;
+  }
+  return 2;
 }
 
 export default function DoctorsPage() {
   const { data: session } = useSession();
   const router = useRouter();
-  const { t, lang } = useLanguage();
+  const { t } = useLanguage();
 
   const [query, setQuery] = useState("");
   const [specialty, setSpecialty] = useState("");
   const [city, setCity] = useState("");
+  const [sort, setSort] = useState<SortMode>("relevance");
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [reviewForms, setReviewForms] = useState<Record<string, ReviewFormState>>({});
 
   const loadDoctors = useCallback(async () => {
     setLoading(true);
@@ -75,9 +73,7 @@ export default function DoctorsPage() {
 
       setDoctors(payload.doctors ?? []);
     } catch (error) {
-      setLoadError(
-        error instanceof Error ? error.message : t("doctorsLoadError")
-      );
+      setLoadError(error instanceof Error ? error.message : t("doctorsLoadError"));
     } finally {
       setLoading(false);
     }
@@ -88,78 +84,64 @@ export default function DoctorsPage() {
   }, [loadDoctors]);
 
   const filtered = useMemo(() => {
-    return doctors.filter((doctor) => {
-      const matchesQuery =
-        doctor.name.toLowerCase().includes(query.toLowerCase()) ||
-        (doctor.specialty ?? "").toLowerCase().includes(query.toLowerCase());
-      const matchesSpecialty = specialty
-        ? (doctor.specialty ?? "")
-            .toLowerCase()
-            .includes(specialty.toLowerCase())
+    const search = normalize(query);
+    const specialtyFilter = normalize(specialty);
+    const cityFilter = normalize(city);
+
+    const result = doctors.filter((doctor) => {
+      const matchesSearch =
+        normalize(doctor.name).includes(search) ||
+        normalize(doctor.specialty).includes(search);
+      const matchesSpecialty = specialtyFilter
+        ? normalize(doctor.specialty).includes(specialtyFilter)
         : true;
-      const matchesCity = city
-        ? (doctor.city ?? "").toLowerCase().includes(city.toLowerCase())
-        : true;
-      return matchesQuery && matchesSpecialty && matchesCity;
+      const matchesCity = cityFilter ? normalize(doctor.city).includes(cityFilter) : true;
+      return matchesSearch && matchesSpecialty && matchesCity;
     });
-  }, [city, doctors, query, specialty]);
 
-  function getReviewForm(doctorId: string) {
-    return reviewForms[doctorId] ?? defaultReviewForm;
-  }
-
-  function updateReviewForm(
-    doctorId: string,
-    updater: (previous: ReviewFormState) => ReviewFormState
-  ) {
-    setReviewForms((current) => {
-      const previous = current[doctorId] ?? defaultReviewForm;
-      return {
-        ...current,
-        [doctorId]: updater(previous),
-      };
-    });
-  }
-
-  async function submitReview(doctorId: string) {
-    const form = getReviewForm(doctorId);
-    updateReviewForm(doctorId, (previous) => ({
-      ...previous,
-      submitting: true,
-      error: null,
-      success: null,
-    }));
-
-    try {
-      const response = await fetch(`/api/doctors/${doctorId}/reviews`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          rating: form.rating,
-          comment: form.comment,
-        }),
-      });
-
-      const payload = (await response.json()) as { ok?: boolean; error?: string };
-      if (!response.ok || !payload.ok) {
-        throw new Error(payload.error || t("doctorsReviewError"));
+    return result.sort((a, b) => {
+      if (sort === "rating") {
+        return (b.ratingAverage ?? 0) - (a.ratingAverage ?? 0);
       }
+      if (sort === "nearest") {
+        return cityScore(a.city, city) - cityScore(b.city, city);
+      }
+      if (sort === "soonest") {
+        if (!a.soonestAvailableAt) {
+          return 1;
+        }
+        if (!b.soonestAvailableAt) {
+          return -1;
+        }
+        return (
+          new Date(a.soonestAvailableAt).getTime() -
+          new Date(b.soonestAvailableAt).getTime()
+        );
+      }
+      return a.name.localeCompare(b.name);
+    });
+  }, [city, doctors, query, sort, specialty]);
 
-      updateReviewForm(doctorId, (previous) => ({
-        ...previous,
-        submitting: false,
-        comment: "",
-        success: t("doctorsReviewSuccess"),
-      }));
-      await loadDoctors();
-    } catch (error) {
-      updateReviewForm(doctorId, (previous) => ({
-        ...previous,
-        submitting: false,
-        error:
-          error instanceof Error ? error.message : t("doctorsReviewError"),
-      }));
+  async function toggleFavorite(doctor: Doctor) {
+    if (!session) {
+      router.push("/auth");
+      return;
     }
+
+    const method = doctor.isFavorite ? "DELETE" : "POST";
+    const response = await fetch(`/api/doctors/${doctor.id}/favorite`, {
+      method,
+    });
+
+    if (!response.ok) {
+      return;
+    }
+
+    setDoctors((current) =>
+      current.map((item) =>
+        item.id === doctor.id ? { ...item, isFavorite: !item.isFavorite } : item
+      )
+    );
   }
 
   return (
@@ -168,13 +150,11 @@ export default function DoctorsPage() {
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           {t("doctorsBadge")}
         </p>
-        <h1 className="text-3xl font-semibold text-slate-900">
-          {t("doctorsTitle")}
-        </h1>
+        <h1 className="text-3xl font-semibold text-slate-900">{t("doctorsTitle")}</h1>
         <p className="text-slate-600">{t("doctorsSubtitle")}</p>
       </header>
 
-      <section className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:grid-cols-3">
+      <section className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:grid-cols-4">
         <label className="grid gap-2 text-sm font-medium text-slate-700">
           {t("doctorsSearchLabel")}
           <input
@@ -202,6 +182,19 @@ export default function DoctorsPage() {
             placeholder={t("doctorsCityPlaceholder")}
           />
         </label>
+        <label className="grid gap-2 text-sm font-medium text-slate-700">
+          Sort by
+          <select
+            value={sort}
+            onChange={(event) => setSort(event.target.value as SortMode)}
+            className="rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-slate-400 focus:outline-none"
+          >
+            <option value="relevance">Name</option>
+            <option value="rating">Rating</option>
+            <option value="nearest">Nearest city</option>
+            <option value="soonest">Soonest availability</option>
+          </select>
+        </label>
       </section>
 
       <section className="grid gap-4">
@@ -218,162 +211,61 @@ export default function DoctorsPage() {
             {t("doctorsEmpty")}
           </div>
         ) : (
-          filtered.map((doctor) => {
-            const form = getReviewForm(doctor.id);
-
-            return (
-              <article
-                key={doctor.id}
-                className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
-              >
-                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                  <div className="flex items-start gap-3">
-                    <Avatar name={doctor.name} src={doctor.avatarUrl} size={42} />
-                    <div>
-                      <p className="text-lg font-semibold text-slate-900">
-                        {doctor.name}
-                      </p>
-                      <p className="text-sm text-slate-600">
-                        {doctor.specialty || t("doctorsUnknownSpecialty")} ·{" "}
-                        {doctor.city || t("doctorsUnknownCity")}
-                      </p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {doctor.ratingCount > 0 && doctor.ratingAverage
-                          ? `${t("doctorsRatingLabel")} ${doctor.ratingAverage}/5 (${doctor.ratingCount})`
-                          : t("doctorsNoReviews")}
-                      </p>
-                    </div>
+          filtered.map((doctor) => (
+            <article
+              key={doctor.id}
+              className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+            >
+              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                <div className="flex items-start gap-3">
+                  <Avatar name={doctor.name} src={doctor.avatarUrl} size={44} />
+                  <div>
+                    <p className="text-lg font-semibold text-slate-900">{doctor.name}</p>
+                    <p className="text-sm text-slate-600">
+                      {doctor.specialty || t("doctorsUnknownSpecialty")} ·{" "}
+                      {doctor.city || t("doctorsUnknownCity")}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {doctor.ratingCount > 0 && doctor.ratingAverage
+                        ? `${doctor.ratingAverage}/5 (${doctor.ratingCount} reviews)`
+                        : t("doctorsNoReviews")}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {doctor.soonestAvailableAt
+                        ? `Soonest slot: ${new Date(doctor.soonestAvailableAt).toLocaleString()}`
+                        : "No open slots in the next 30 days"}
+                    </p>
                   </div>
+                </div>
 
+                <div className="flex flex-wrap items-center gap-2">
                   <button
-                    onClick={() => {
-                      if (!session) {
-                        router.push("/auth");
-                        return;
-                      }
-                    }}
-                    className="rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+                    type="button"
+                    onClick={() => void toggleFavorite(doctor)}
+                    className={`rounded-full border px-4 py-2 text-xs font-semibold transition ${
+                      doctor.isFavorite
+                        ? "border-amber-300 bg-amber-50 text-amber-700"
+                        : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                    }`}
                   >
-                    {session ? t("doctorsRequest") : t("doctorsSignInToRequest")}
+                    {doctor.isFavorite ? "Favorited" : "Add to favorites"}
                   </button>
+                  <Link
+                    href={`/doctors/${doctor.id}`}
+                    className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+                  >
+                    View profile
+                  </Link>
+                  <Link
+                    href={`/doctors/${doctor.id}`}
+                    className="rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800"
+                  >
+                    {session ? "Book now" : t("doctorsSignInToRequest")}
+                  </Link>
                 </div>
-
-                <div className="mt-5 grid gap-4 md:grid-cols-2">
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <p className="text-sm font-semibold text-slate-800">
-                      {t("doctorsRecentReviews")}
-                    </p>
-                    <div className="mt-3 space-y-3">
-                      {doctor.latestReviews.length === 0 ? (
-                        <p className="text-sm text-slate-500">
-                          {t("doctorsNoReviews")}
-                        </p>
-                      ) : (
-                        doctor.latestReviews.map((review) => (
-                          <div
-                            key={review.id}
-                            className="rounded-lg border border-slate-200 bg-white p-3"
-                          >
-                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                              {renderStars(review.rating)}
-                            </p>
-                            <p className="mt-1 text-sm text-slate-700">
-                              {review.comment}
-                            </p>
-                            <p className="mt-1 text-xs text-slate-500">
-                              {review.reviewerName} ·{" "}
-                              {new Date(review.createdAt).toLocaleDateString(
-                                lang === "bg" ? "bg-BG" : "en-US"
-                              )}
-                            </p>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-slate-200 bg-white p-4">
-                    <p className="text-sm font-semibold text-slate-800">
-                      {t("doctorsLeaveReview")}
-                    </p>
-                    {session ? (
-                      <form
-                        className="mt-3 space-y-3"
-                        onSubmit={(event) => {
-                          event.preventDefault();
-                          void submitReview(doctor.id);
-                        }}
-                      >
-                        <label className="grid gap-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                          {t("doctorsYourRating")}
-                          <select
-                            value={form.rating}
-                            onChange={(event) =>
-                              updateReviewForm(doctor.id, (previous) => ({
-                                ...previous,
-                                rating: Number(event.target.value),
-                                error: null,
-                                success: null,
-                              }))
-                            }
-                            className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-slate-400 focus:outline-none"
-                          >
-                            <option value={5}>5 ★★★★★</option>
-                            <option value={4}>4 ★★★★☆</option>
-                            <option value={3}>3 ★★★☆☆</option>
-                            <option value={2}>2 ★★☆☆☆</option>
-                            <option value={1}>1 ★☆☆☆☆</option>
-                          </select>
-                        </label>
-
-                        <label className="grid gap-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                          {t("doctorsYourComment")}
-                          <textarea
-                            value={form.comment}
-                            onChange={(event) =>
-                              updateReviewForm(doctor.id, (previous) => ({
-                                ...previous,
-                                comment: event.target.value,
-                                error: null,
-                                success: null,
-                              }))
-                            }
-                            className="min-h-24 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-slate-400 focus:outline-none"
-                            placeholder={t("doctorsCommentPlaceholder")}
-                          />
-                        </label>
-
-                        {form.error && (
-                          <p className="text-xs font-medium text-rose-600">
-                            {form.error}
-                          </p>
-                        )}
-                        {form.success && (
-                          <p className="text-xs font-medium text-emerald-600">
-                            {form.success}
-                          </p>
-                        )}
-
-                        <button
-                          type="submit"
-                          disabled={form.submitting}
-                          className="rounded-full border border-slate-900 bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
-                        >
-                          {form.submitting
-                            ? t("doctorsSubmittingReview")
-                            : t("doctorsSubmitReview")}
-                        </button>
-                      </form>
-                    ) : (
-                      <div className="mt-3 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-4 text-sm text-slate-600">
-                        {t("doctorsSignInToReview")}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </article>
-            );
-          })
+              </div>
+            </article>
+          ))
         )}
       </section>
     </div>

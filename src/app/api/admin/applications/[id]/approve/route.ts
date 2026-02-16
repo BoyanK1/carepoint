@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getUserProfile } from "@/lib/profiles";
 import { verifyMfaToken } from "@/lib/mfa-token";
+import { createNotification, sendStatusEmail } from "@/lib/notifications";
 
 export async function POST(
   _request: Request,
@@ -58,14 +59,85 @@ export async function POST(
     return NextResponse.json({ error: error?.message ?? "Not found" }, { status: 404 });
   }
 
-  await admin.from("doctor_profiles").insert({
-    user_id: data.user_id,
-    specialty: data.specialty,
-    city: data.city,
-    verified: true,
-  });
+  const { data: existingDoctorProfile } = await admin
+    .from("doctor_profiles")
+    .select("id")
+    .eq("user_id", data.user_id)
+    .maybeSingle();
+
+  let doctorProfileId = existingDoctorProfile?.id as string | undefined;
+  if (doctorProfileId) {
+    await admin
+      .from("doctor_profiles")
+      .update({
+        specialty: data.specialty,
+        city: data.city,
+        verified: true,
+      })
+      .eq("id", doctorProfileId);
+  } else {
+    const { data: insertedDoctorProfile } = await admin
+      .from("doctor_profiles")
+      .insert({
+        user_id: data.user_id,
+        specialty: data.specialty,
+        city: data.city,
+        verified: true,
+      })
+      .select("id")
+      .single();
+
+    doctorProfileId = insertedDoctorProfile?.id as string | undefined;
+  }
 
   await admin.from("user_profiles").update({ role: "doctor" }).eq("id", data.user_id);
+
+  if (doctorProfileId) {
+    await admin.from("doctor_availability").upsert(
+      [1, 2, 3, 4, 5].map((day) => ({
+        doctor_profile_id: doctorProfileId,
+        day_of_week: day,
+        start_time: "09:00:00",
+        end_time: "17:00:00",
+        slot_minutes: 30,
+      })),
+      { onConflict: "doctor_profile_id,day_of_week,start_time,end_time" }
+    );
+  }
+
+  await admin.from("admin_audit_logs").insert({
+    admin_user_id: session.user.id,
+    target_user_id: data.user_id,
+    application_id: id,
+    action: "application_approved",
+    metadata: {
+      specialty: data.specialty,
+      city: data.city,
+    },
+  });
+
+  await createNotification(admin, {
+    userId: data.user_id,
+    category: "doctor-application",
+    title: "Doctor application approved",
+    message: "Your doctor verification was approved. You are now visible in search.",
+    entityType: "doctor_application",
+    entityId: id,
+  });
+
+  const { data: applicantProfile } = await admin
+    .from("user_profiles")
+    .select("email, full_name")
+    .eq("id", data.user_id)
+    .maybeSingle();
+
+  if (applicantProfile?.email) {
+    await sendStatusEmail({
+      to: applicantProfile.email,
+      subject: "CarePoint doctor application approved",
+      text: `Hi ${applicantProfile.full_name || "doctor"}, your application was approved.`,
+    }).catch(() => null);
+  }
 
   return NextResponse.json({ ok: true });
 }

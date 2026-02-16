@@ -72,6 +72,15 @@ export function Footer() {
                 >
                   {t("footerDashboard")}
                 </Link>
+                <Link
+                  href="/appointments"
+                  className="block transition hover:text-slate-900"
+                >
+                  My appointments
+                </Link>
+                <Link href="/history" className="block transition hover:text-slate-900">
+                  History timeline
+                </Link>
               </div>
 
               <div className="space-y-2.5">
@@ -102,6 +111,12 @@ export function Footer() {
                 </Link>
                 <Link href="/auth" className="block transition hover:text-slate-900">
                   {t("footerSignIn")}
+                </Link>
+                <Link
+                  href="/notifications"
+                  className="block transition hover:text-slate-900"
+                >
+                  Notifications
                 </Link>
               </div>
 

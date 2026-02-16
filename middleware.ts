@@ -8,7 +8,12 @@ const protectedPaths = [
   "/profile",
   "/admin",
   "/doctor/apply",
+  "/appointments",
+  "/history",
+  "/notifications",
   "/api/admin",
+  "/api/appointments",
+  "/api/notifications",
 ];
 
 const mfaRequiredPaths = ["/admin", "/api/admin"];
