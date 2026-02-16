@@ -2,14 +2,18 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import {
+  detectMimeType,
+  type DetectedMimeType,
+} from "@/lib/security/file-signature";
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
-const ALLOWED_AVATAR_TYPES = new Map([
-  ["image/jpeg", "jpg"],
-  ["image/png", "png"],
-  ["image/webp", "webp"],
-  ["image/gif", "gif"],
-]);
+const ALLOWED_AVATAR_TYPES: Partial<Record<DetectedMimeType, string>> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/gif": "gif",
+};
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -39,19 +43,20 @@ export async function POST(request: Request) {
     );
   }
 
-  const extension = ALLOWED_AVATAR_TYPES.get(avatar.type);
-  if (!extension) {
+  const buffer = Buffer.from(await avatar.arrayBuffer());
+  const detectedMimeType = detectMimeType(buffer);
+  if (!detectedMimeType || !ALLOWED_AVATAR_TYPES[detectedMimeType]) {
     return NextResponse.json(
       { error: "Unsupported avatar file type." },
       { status: 400 }
     );
   }
 
-  const buffer = Buffer.from(await avatar.arrayBuffer());
+  const extension = ALLOWED_AVATAR_TYPES[detectedMimeType];
   const filePath = `${session.user.id}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
 
   const upload = await admin.storage.from("avatars").upload(filePath, buffer, {
-    contentType: avatar.type,
+    contentType: detectedMimeType,
     upsert: false,
   });
 

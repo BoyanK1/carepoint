@@ -2,14 +2,18 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import {
+  detectMimeType,
+  type DetectedMimeType,
+} from "@/lib/security/file-signature";
 
 const MAX_LICENSE_BYTES = 8 * 1024 * 1024;
-const ALLOWED_LICENSE_TYPES = new Map([
-  ["application/pdf", "pdf"],
-  ["image/jpeg", "jpg"],
-  ["image/png", "png"],
-  ["image/webp", "webp"],
-]);
+const ALLOWED_LICENSE_TYPES: Partial<Record<DetectedMimeType, string>> = {
+  "application/pdf": "pdf",
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -51,21 +55,22 @@ export async function POST(request: Request) {
     );
   }
 
-  const extension = ALLOWED_LICENSE_TYPES.get(license.type);
-  if (!extension) {
+  const buffer = Buffer.from(await license.arrayBuffer());
+  const detectedMimeType = detectMimeType(buffer);
+  if (!detectedMimeType || !ALLOWED_LICENSE_TYPES[detectedMimeType]) {
     return NextResponse.json(
       { error: "Unsupported license file type." },
       { status: 400 }
     );
   }
 
-  const buffer = Buffer.from(await license.arrayBuffer());
+  const extension = ALLOWED_LICENSE_TYPES[detectedMimeType];
   const filePath = `${session.user.id}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
 
   const upload = await admin.storage
     .from("doctor-licenses")
     .upload(filePath, buffer, {
-      contentType: license.type,
+      contentType: detectedMimeType,
       upsert: false,
     });
 

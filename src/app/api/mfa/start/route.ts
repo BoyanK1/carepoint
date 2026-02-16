@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { getServerSession } from "next-auth";
 import { Resend } from "resend";
 import { authOptions } from "@/lib/auth";
 import { hashMfaCode } from "@/lib/mfa-token";
+import { consumeRateLimit } from "@/lib/security/rate-limit";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const SEND_WINDOW_MS = 10 * 60 * 1000;
+const SEND_WINDOW_SECONDS = 10 * 60;
 const MAX_SENDS_PER_WINDOW = 5;
 
 export async function POST() {
@@ -22,14 +22,18 @@ export async function POST() {
     );
   }
 
-  const cookieStore = await cookies();
-  const now = Date.now();
-  const previousWindow = Number(cookieStore.get("mfa_send_window")?.value ?? now);
-  const previousCount = Number(cookieStore.get("mfa_send_count")?.value ?? 0);
-  const activeWindow = now - previousWindow <= SEND_WINDOW_MS;
-  const sendCount = activeWindow ? previousCount : 0;
+  const rateLimit = await consumeRateLimit({
+    namespace: "mfa_send",
+    identifier: session.user.id,
+    windowSeconds: SEND_WINDOW_SECONDS,
+    maxRequests: MAX_SENDS_PER_WINDOW,
+  });
 
-  if (sendCount >= MAX_SENDS_PER_WINDOW) {
+  if (rateLimit.error) {
+    return NextResponse.json({ error: "Rate limit service unavailable." }, { status: 503 });
+  }
+
+  if (!rateLimit.allowed) {
     return NextResponse.json(
       { error: "Too many code requests. Please wait and try again." },
       { status: 429 }
@@ -84,27 +88,9 @@ export async function POST() {
     maxAge: 5 * 60,
     path: "/",
   });
-  response.cookies.set("mfa_attempts", "0", {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    maxAge: 5 * 60,
-    path: "/",
-  });
-  response.cookies.set("mfa_send_window", String(activeWindow ? previousWindow : now), {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    maxAge: Math.floor(SEND_WINDOW_MS / 1000),
-    path: "/",
-  });
-  response.cookies.set("mfa_send_count", String(sendCount + 1), {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    maxAge: Math.floor(SEND_WINDOW_MS / 1000),
-    path: "/",
-  });
+  response.cookies.set("mfa_attempts", "", { maxAge: 0, path: "/" });
+  response.cookies.set("mfa_send_window", "", { maxAge: 0, path: "/" });
+  response.cookies.set("mfa_send_count", "", { maxAge: 0, path: "/" });
   response.cookies.set("mfa_verified", "", { maxAge: 0, path: "/" });
 
   return response;

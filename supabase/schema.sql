@@ -80,6 +80,64 @@ create index if not exists idx_doctor_reviews_doctor_profile_id
 create index if not exists idx_doctor_reviews_reviewer_id
   on doctor_reviews(reviewer_id);
 
+create table if not exists security_rate_limits (
+  key text primary key,
+  window_started_at timestamptz not null default now(),
+  request_count integer not null default 0,
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_security_rate_limits_updated_at
+  on security_rate_limits(updated_at);
+
+create or replace function public.check_rate_limit(
+  p_key text,
+  p_window_seconds integer,
+  p_max_requests integer
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  current_ts timestamptz := now();
+  state_row security_rate_limits%rowtype;
+begin
+  if p_key is null or length(trim(p_key)) = 0 then
+    return false;
+  end if;
+
+  if p_window_seconds <= 0 or p_max_requests <= 0 then
+    return false;
+  end if;
+
+  insert into security_rate_limits as rl (key, window_started_at, request_count, updated_at)
+  values (p_key, current_ts, 1, current_ts)
+  on conflict (key)
+  do update
+    set window_started_at =
+      case
+        when extract(epoch from (current_ts - rl.window_started_at)) >= p_window_seconds
+          then current_ts
+        else rl.window_started_at
+      end,
+        request_count =
+      case
+        when extract(epoch from (current_ts - rl.window_started_at)) >= p_window_seconds
+          then 1
+        else rl.request_count + 1
+      end,
+        updated_at = current_ts
+  returning * into state_row;
+
+  return state_row.request_count <= p_max_requests;
+end;
+$$;
+
+revoke all on table security_rate_limits from anon, authenticated;
+grant execute on function public.check_rate_limit(text, integer, integer) to anon, authenticated;
+
 -- RLS notes:
 -- Enable row level security and add policies that fit your app.
 -- Example:

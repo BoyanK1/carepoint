@@ -1,40 +1,33 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { FeedbackEmail } from "@/emails/FeedbackEmail";
+import { consumeRateLimit } from "@/lib/security/rate-limit";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const FEEDBACK_WINDOW_MS = 10 * 60 * 1000;
+const FEEDBACK_WINDOW_SECONDS = 10 * 60;
 const FEEDBACK_MAX_REQUESTS = 5;
-const feedbackRateMap = new Map<string, { count: number; startedAt: number }>();
 
 function getClientIdentifier(request: Request) {
   const forwardedFor = request.headers.get("x-forwarded-for");
-  const forwardedHost = request.headers.get("x-forwarded-host");
+  const realIp = request.headers.get("x-real-ip");
+  const forwardedHost = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
   const ip = forwardedFor?.split(",")[0]?.trim();
-  return ip || forwardedHost || "unknown";
-}
-
-function isRateLimited(identifier: string) {
-  const now = Date.now();
-  const current = feedbackRateMap.get(identifier);
-  if (!current || now - current.startedAt > FEEDBACK_WINDOW_MS) {
-    feedbackRateMap.set(identifier, { count: 1, startedAt: now });
-    return false;
-  }
-
-  if (current.count >= FEEDBACK_MAX_REQUESTS) {
-    return true;
-  }
-
-  feedbackRateMap.set(identifier, {
-    count: current.count + 1,
-    startedAt: current.startedAt,
-  });
-  return false;
+  return ip || realIp || forwardedHost || "unknown";
 }
 
 export async function POST(request: Request) {
-  if (isRateLimited(getClientIdentifier(request))) {
+  const rateLimit = await consumeRateLimit({
+    namespace: "feedback",
+    identifier: getClientIdentifier(request),
+    windowSeconds: FEEDBACK_WINDOW_SECONDS,
+    maxRequests: FEEDBACK_MAX_REQUESTS,
+  });
+
+  if (rateLimit.error) {
+    return NextResponse.json({ error: "Rate limit service unavailable." }, { status: 503 });
+  }
+
+  if (!rateLimit.allowed) {
     return NextResponse.json(
       { error: "Too many feedback requests. Please try again later." },
       { status: 429 }
@@ -52,6 +45,15 @@ export async function POST(request: Request) {
       { error: "Message must be at least 5 characters." },
       { status: 400 }
     );
+  }
+  if (message.length > 5000) {
+    return NextResponse.json(
+      { error: "Message must be under 5000 characters." },
+      { status: 400 }
+    );
+  }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return NextResponse.json({ error: "Invalid email address." }, { status: 400 });
   }
 
   if (!process.env.FEEDBACK_TO_EMAIL) {
