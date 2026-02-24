@@ -1,6 +1,5 @@
 "use client";
 
-import { useSession } from "next-auth/react";
 import { useState } from "react";
 import { SignOutButton } from "@/components/SignOutButton";
 import { useLanguage } from "@/components/LanguageProvider";
@@ -14,7 +13,6 @@ const ALLOWED_AVATAR_MIME_TYPES = new Set([
 ]);
 
 export default function ProfilePage() {
-  const { data: session } = useSession();
   const { t } = useLanguage();
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<"idle" | "uploading" | "success" | "error">(
@@ -74,11 +72,6 @@ export default function ProfilePage() {
       setError(err instanceof Error ? err.message : t("authUnexpectedError"));
     }
   };
-
-  const mfaNote = t("profileMfaNote").replace(
-    "{email}",
-    session?.user?.email ?? t("commonYourAccount")
-  );
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 bg-slate-50 px-6 py-12 text-slate-900">
@@ -142,10 +135,6 @@ export default function ProfilePage() {
             <p className="text-sm font-medium text-rose-600">{error}</p>
           )}
         </form>
-      </section>
-
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm">
-        {mfaNote}
       </section>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">

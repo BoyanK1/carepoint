@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { hasTrustedOrigin } from "@/lib/security/request-guard";
 
 const UUID_PATTERN = /^[0-9a-fA-F-]{36}$/;
 
@@ -34,6 +35,10 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
+  if (!hasTrustedOrigin(request)) {
+    return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
+  }
+
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

@@ -4,8 +4,13 @@ import { authOptions } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { isSlotAligned, type AvailabilityRow } from "@/lib/appointments";
 import { createManyNotifications, sendStatusEmail } from "@/lib/notifications";
+import { consumeRateLimit } from "@/lib/security/rate-limit";
+import { getClientIdentifier, hasTrustedOrigin } from "@/lib/security/request-guard";
+import { getAuthUserEmail } from "@/lib/supabase/auth-users";
 
 const UUID_PATTERN = /^[0-9a-fA-F-]{36}$/;
+const EDIT_WINDOW_SECONDS = 10 * 60;
+const EDIT_MAX_REQUESTS = 30;
 
 function getWindowEnd(day: Date, endTime: string) {
   const [hours = "0", minutes = "0", seconds = "0"] = endTime.split(":");
@@ -25,9 +30,31 @@ export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
+  if (!hasTrustedOrigin(request)) {
+    return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
+  }
+
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const rateLimit = await consumeRateLimit({
+    namespace: "appointments_edit",
+    identifier: `${session.user.id}:${getClientIdentifier(request)}`,
+    windowSeconds: EDIT_WINDOW_SECONDS,
+    maxRequests: EDIT_MAX_REQUESTS,
+  });
+
+  if (rateLimit.error) {
+    return NextResponse.json({ error: "Rate limit service unavailable." }, { status: 503 });
+  }
+
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many update attempts. Please try again later." },
+      { status: 429 }
+    );
   }
 
   const { id } = await context.params;
@@ -76,10 +103,13 @@ export async function PATCH(
   const { data: doctorUserProfile } = doctorProfile
     ? await admin
         .from("user_profiles")
-        .select("id, full_name, email")
+        .select("id, full_name")
         .eq("id", doctorProfile.user_id)
         .single()
     : { data: null };
+  const doctorEmail = doctorProfile?.user_id
+    ? await getAuthUserEmail(doctorProfile.user_id)
+    : null;
 
   const doctorName = doctorUserProfile?.full_name || "Doctor";
 
@@ -145,9 +175,9 @@ export async function PATCH(
       }).catch(() => null);
     }
 
-    if (doctorUserProfile?.email) {
+    if (doctorEmail) {
       await sendStatusEmail({
-        to: doctorUserProfile.email,
+        to: doctorEmail,
         subject: "CarePoint appointment cancelled",
         text: `A patient cancelled the appointment scheduled for ${dateLabel}.`,
       }).catch(() => null);
@@ -258,9 +288,9 @@ export async function PATCH(
     }).catch(() => null);
   }
 
-  if (doctorUserProfile?.email) {
+  if (doctorEmail) {
     await sendStatusEmail({
-      to: doctorUserProfile.email,
+      to: doctorEmail,
       subject: "CarePoint appointment rescheduled",
       text: `A patient rescheduled to ${dateLabel}.`,
     }).catch(() => null);

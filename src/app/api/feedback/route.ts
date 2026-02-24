@@ -2,20 +2,17 @@ import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { FeedbackEmail } from "@/emails/FeedbackEmail";
 import { consumeRateLimit } from "@/lib/security/rate-limit";
+import { getClientIdentifier, hasTrustedOrigin } from "@/lib/security/request-guard";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FEEDBACK_WINDOW_SECONDS = 10 * 60;
 const FEEDBACK_MAX_REQUESTS = 5;
 
-function getClientIdentifier(request: Request) {
-  const forwardedFor = request.headers.get("x-forwarded-for");
-  const realIp = request.headers.get("x-real-ip");
-  const forwardedHost = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
-  const ip = forwardedFor?.split(",")[0]?.trim();
-  return ip || realIp || forwardedHost || "unknown";
-}
-
 export async function POST(request: Request) {
+  if (!hasTrustedOrigin(request)) {
+    return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
+  }
+
   const rateLimit = await consumeRateLimit({
     namespace: "feedback",
     identifier: getClientIdentifier(request),

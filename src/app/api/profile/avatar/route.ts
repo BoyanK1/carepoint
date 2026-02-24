@@ -6,11 +6,15 @@ import {
   detectMimeType,
   type DetectedMimeType,
 } from "@/lib/security/file-signature";
+import { consumeRateLimit } from "@/lib/security/rate-limit";
+import { getClientIdentifier, hasTrustedOrigin } from "@/lib/security/request-guard";
 
 export const runtime = "nodejs";
 
 const AVATAR_BUCKET = "avatars";
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
+const AVATAR_WINDOW_SECONDS = 10 * 60;
+const AVATAR_MAX_REQUESTS = 20;
 const ALLOWED_AVATAR_TYPES: Partial<Record<DetectedMimeType, string>> = {
   "image/jpeg": "jpg",
   "image/png": "png",
@@ -35,9 +39,31 @@ function toAvatarErrorMessage(raw: unknown) {
 
 export async function POST(request: Request) {
   try {
+    if (!hasTrustedOrigin(request)) {
+      return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
+    }
+
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const rateLimit = await consumeRateLimit({
+      namespace: "avatar_upload",
+      identifier: `${session.user.id}:${getClientIdentifier(request)}`,
+      windowSeconds: AVATAR_WINDOW_SECONDS,
+      maxRequests: AVATAR_MAX_REQUESTS,
+    });
+
+    if (rateLimit.error) {
+      return NextResponse.json({ error: "Rate limit service unavailable." }, { status: 503 });
+    }
+
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: "Too many avatar uploads. Please wait and try again." },
+        { status: 429 }
+      );
     }
 
     const admin = getSupabaseAdmin();

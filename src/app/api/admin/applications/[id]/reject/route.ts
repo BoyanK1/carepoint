@@ -6,11 +6,17 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getUserProfile } from "@/lib/profiles";
 import { verifyMfaToken } from "@/lib/mfa-token";
 import { createNotification, sendStatusEmail } from "@/lib/notifications";
+import { hasTrustedOrigin } from "@/lib/security/request-guard";
+import { getAuthUserEmail } from "@/lib/supabase/auth-users";
 
 export async function POST(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
+  if (!hasTrustedOrigin(request)) {
+    return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
+  }
+
   const { id } = await context.params;
 
   if (!/^[0-9a-fA-F-]{36}$/.test(id)) {
@@ -88,15 +94,16 @@ export async function POST(
 
   const { data: applicantProfile } = await admin
     .from("user_profiles")
-    .select("email, full_name")
+    .select("full_name")
     .eq("id", data.user_id)
     .maybeSingle();
+  const applicantEmail = await getAuthUserEmail(data.user_id);
 
-  if (applicantProfile?.email) {
+  if (applicantEmail) {
     await sendStatusEmail({
-      to: applicantProfile.email,
+      to: applicantEmail,
       subject: "CarePoint doctor application update",
-      text: `Hi ${applicantProfile.full_name || "doctor"}, your application was rejected. Please submit updated license proof.`,
+      text: `Hi ${applicantProfile?.full_name || "doctor"}, your application was rejected. Please submit updated license proof.`,
     }).catch(() => null);
   }
 

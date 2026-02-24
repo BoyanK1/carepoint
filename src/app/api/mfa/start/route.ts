@@ -4,12 +4,17 @@ import { Resend } from "resend";
 import { authOptions } from "@/lib/auth";
 import { hashMfaCode } from "@/lib/mfa-token";
 import { consumeRateLimit } from "@/lib/security/rate-limit";
+import { hasTrustedOrigin } from "@/lib/security/request-guard";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const SEND_WINDOW_SECONDS = 10 * 60;
 const MAX_SENDS_PER_WINDOW = 5;
 
-export async function POST() {
+export async function POST(request: Request) {
+  if (!hasTrustedOrigin(request)) {
+    return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
+  }
+
   const session = await getServerSession(authOptions);
   if (!session?.user?.id || !session?.user?.email) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

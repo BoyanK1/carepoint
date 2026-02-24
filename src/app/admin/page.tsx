@@ -80,13 +80,13 @@ export default async function AdminPage() {
   const { data: actorProfiles } = actorIds.length
     ? await admin
         .from("user_profiles")
-        .select("id, full_name, email")
+        .select("id, full_name")
         .in("id", actorIds)
     : { data: [] };
 
   const actorMap = new Map(
-    ((actorProfiles ?? []) as Array<{ id: string; full_name: string | null; email: string | null }>).map(
-      (profile) => [profile.id, profile.full_name || profile.email || profile.id]
+    ((actorProfiles ?? []) as Array<{ id: string; full_name: string | null }>).map(
+      (profile) => [profile.id, profile.full_name || profile.id]
     )
   );
 

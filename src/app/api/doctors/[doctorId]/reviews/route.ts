@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { hasTrustedOrigin } from "@/lib/security/request-guard";
 
 interface UserProfileRow {
   id: string;
@@ -97,6 +98,10 @@ export async function POST(
   request: Request,
   context: { params: Promise<{ doctorId: string }> }
 ) {
+  if (!hasTrustedOrigin(request)) {
+    return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
+  }
+
   const { doctorId } = await context.params;
   if (!UUID_PATTERN.test(doctorId)) {
     return NextResponse.json({ error: "Invalid doctor ID." }, { status: 400 });

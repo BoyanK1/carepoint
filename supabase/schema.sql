@@ -31,6 +31,7 @@ create table if not exists user_profiles (
   created_at timestamptz not null default now(),
   full_name text,
   email text,
+  email_hash text,
   role text not null default 'patient',
   city text,
   avatar_url text
@@ -85,6 +86,9 @@ alter table appointments
   add column if not exists canceled_by uuid references auth.users(id) on delete set null,
   add column if not exists rescheduled_from uuid references appointments(id) on delete set null;
 
+alter table user_profiles
+  add column if not exists email_hash text;
+
 do $$
 begin
   if not exists (
@@ -95,6 +99,27 @@ begin
     alter table appointments
       add constraint appointments_status_check
       check (status in ('scheduled', 'confirmed', 'completed', 'cancelled'));
+  end if;
+end;
+$$;
+
+update appointments
+set ends_at = starts_at + interval '30 minutes'
+where ends_at is null and starts_at is not null;
+
+alter table appointments
+  alter column ends_at set not null;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'appointments_ends_after_start'
+  ) then
+    alter table appointments
+      add constraint appointments_ends_after_start
+      check (ends_at > starts_at);
   end if;
 end;
 $$;
@@ -110,7 +135,7 @@ begin
       add constraint appointments_doctor_slot_excl
       exclude using gist (
         doctor_profile_id with =,
-        tstzrange(starts_at, coalesce(ends_at, starts_at + interval '30 minutes'), '[)') with &&
+        tstzrange(starts_at, ends_at, '[)') with &&
       )
       where (doctor_profile_id is not null and status in ('scheduled', 'confirmed'));
   end if;
@@ -178,6 +203,9 @@ create index if not exists idx_notifications_user_id
 
 create index if not exists idx_admin_audit_logs_created_at
   on admin_audit_logs(created_at desc);
+
+create index if not exists idx_user_profiles_email_hash
+  on user_profiles(email_hash);
 
 create index if not exists idx_doctor_availability_lookup
   on doctor_availability(doctor_profile_id, day_of_week, is_active);

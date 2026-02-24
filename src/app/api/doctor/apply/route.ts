@@ -6,8 +6,12 @@ import {
   detectMimeType,
   type DetectedMimeType,
 } from "@/lib/security/file-signature";
+import { consumeRateLimit } from "@/lib/security/rate-limit";
+import { getClientIdentifier, hasTrustedOrigin } from "@/lib/security/request-guard";
 
 const MAX_LICENSE_BYTES = 8 * 1024 * 1024;
+const APPLY_WINDOW_SECONDS = 30 * 60;
+const APPLY_MAX_REQUESTS = 10;
 const ALLOWED_LICENSE_TYPES: Partial<Record<DetectedMimeType, string>> = {
   "application/pdf": "pdf",
   "image/jpeg": "jpg",
@@ -16,9 +20,31 @@ const ALLOWED_LICENSE_TYPES: Partial<Record<DetectedMimeType, string>> = {
 };
 
 export async function POST(request: Request) {
+  if (!hasTrustedOrigin(request)) {
+    return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
+  }
+
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const rateLimit = await consumeRateLimit({
+    namespace: "doctor_apply",
+    identifier: `${session.user.id}:${getClientIdentifier(request)}`,
+    windowSeconds: APPLY_WINDOW_SECONDS,
+    maxRequests: APPLY_MAX_REQUESTS,
+  });
+
+  if (rateLimit.error) {
+    return NextResponse.json({ error: "Rate limit service unavailable." }, { status: 503 });
+  }
+
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many application attempts. Please try again later." },
+      { status: 429 }
+    );
   }
 
   const admin = getSupabaseAdmin();

@@ -8,8 +8,13 @@ import {
 } from "@/lib/appointments";
 import { createManyNotifications, sendStatusEmail } from "@/lib/notifications";
 import { getUserProfile } from "@/lib/profiles";
+import { consumeRateLimit } from "@/lib/security/rate-limit";
+import { getClientIdentifier, hasTrustedOrigin } from "@/lib/security/request-guard";
+import { getAuthUserEmail } from "@/lib/supabase/auth-users";
 
 const UUID_PATTERN = /^[0-9a-fA-F-]{36}$/;
+const BOOK_WINDOW_SECONDS = 10 * 60;
+const BOOK_MAX_REQUESTS = 20;
 
 function getWindowEnd(day: Date, endTime: string) {
   const [hours = "0", minutes = "0", seconds = "0"] = endTime.split(":");
@@ -158,9 +163,31 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  if (!hasTrustedOrigin(request)) {
+    return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
+  }
+
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const rateLimit = await consumeRateLimit({
+    namespace: "appointments_book",
+    identifier: `${session.user.id}:${getClientIdentifier(request)}`,
+    windowSeconds: BOOK_WINDOW_SECONDS,
+    maxRequests: BOOK_MAX_REQUESTS,
+  });
+
+  if (rateLimit.error) {
+    return NextResponse.json({ error: "Rate limit service unavailable." }, { status: 503 });
+  }
+
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many booking attempts. Please try again later." },
+      { status: 429 }
+    );
   }
 
   const admin = getSupabaseAdmin();
@@ -254,13 +281,14 @@ export async function POST(request: Request) {
     event_note: reason || null,
   });
 
-  const [doctorProfileResult, patientProfile] = await Promise.all([
+  const [doctorProfileResult, patientProfile, doctorEmail] = await Promise.all([
     admin
       .from("user_profiles")
-      .select("id, full_name, email")
+      .select("id, full_name")
       .eq("id", doctor.user_id)
       .single(),
     getUserProfile(session.user.id),
+    getAuthUserEmail(doctor.user_id),
   ]);
 
   const patientName =
@@ -298,9 +326,9 @@ export async function POST(request: Request) {
     }).catch(() => null);
   }
 
-  if (doctorProfileResult.data?.email) {
+  if (doctorEmail) {
     await sendStatusEmail({
-      to: doctorProfileResult.data.email,
+      to: doctorEmail,
       subject: "New CarePoint appointment",
       text: `${patientName} booked an appointment for ${dateLabel}.`,
     }).catch(() => null);

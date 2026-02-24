@@ -4,12 +4,17 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { createMfaToken, hashMfaCode } from "@/lib/mfa-token";
 import { consumeRateLimit } from "@/lib/security/rate-limit";
+import { hasTrustedOrigin } from "@/lib/security/request-guard";
 
 const MAX_VERIFY_ATTEMPTS = 5;
 const VERIFY_WINDOW_SECONDS = 5 * 60;
 const MFA_SESSION_TTL_SECONDS = 30 * 60;
 
 export async function POST(request: Request) {
+  if (!hasTrustedOrigin(request)) {
+    return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
+  }
+
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
