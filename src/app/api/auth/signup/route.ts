@@ -99,13 +99,30 @@ export async function POST(request: Request) {
 
   const admin = getSupabaseAdmin();
   if (admin && data.user) {
-    await admin.from("user_profiles").upsert({
+    const profilePayload = {
       id: data.user.id,
       full_name: name || null,
       email: null,
       email_hash: hashEmail(email),
       role: "patient",
-    });
+    };
+
+    const upsertWithHash = await admin.from("user_profiles").upsert(profilePayload);
+    if (upsertWithHash.error) {
+      const message = upsertWithHash.error.message.toLowerCase();
+      const missingHashColumn =
+        message.includes("email_hash") &&
+        (message.includes("column") || message.includes("does not exist"));
+
+      if (missingHashColumn) {
+        await admin.from("user_profiles").upsert({
+          id: data.user.id,
+          full_name: name || null,
+          email: null,
+          role: "patient",
+        });
+      }
+    }
   }
 
   return NextResponse.json({ ok: true, user: data.user });
