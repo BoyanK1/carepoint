@@ -139,6 +139,10 @@ export const translations = {
     profileUploadSuccess: "Avatar updated. Refresh to see it in the navigation.",
     profileChooseFile: "Please choose a file.",
     profileUploadFailed: "Upload failed.",
+    profileAvatarTypeError: "Only JPG, PNG, WEBP, or GIF images are allowed.",
+    profileAvatarSizeError: "Avatar is too large. Please upload an image up to 2MB.",
+    profileUploadNetworkError:
+      "Network error while uploading avatar. Please try again.",
     profileMfaNote:
       "MFA is required for admin actions. You are signed in as {email}.",
     profileSessionTitle: "Session",
@@ -338,6 +342,12 @@ export const translations = {
       "Аватарът е обновен. Обнови страницата, за да го видиш.",
     profileChooseFile: "Моля, избери файл.",
     profileUploadFailed: "Качването се провали.",
+    profileAvatarTypeError:
+      "Позволени са само JPG, PNG, WEBP или GIF изображения.",
+    profileAvatarSizeError:
+      "Аватарът е твърде голям. Качи изображение до 2MB.",
+    profileUploadNetworkError:
+      "Мрежова грешка при качване на аватар. Опитай отново.",
     profileMfaNote: "MFA е нужна за админ действия. Влязъл си като {email}.",
     profileSessionTitle: "Сесия",
     profileSessionBody:

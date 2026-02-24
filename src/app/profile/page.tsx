@@ -5,6 +5,14 @@ import { useState } from "react";
 import { SignOutButton } from "@/components/SignOutButton";
 import { useLanguage } from "@/components/LanguageProvider";
 
+const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
+const ALLOWED_AVATAR_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+]);
+
 export default function ProfilePage() {
   const { data: session } = useSession();
   const { t } = useLanguage();
@@ -22,6 +30,18 @@ export default function ProfilePage() {
       return;
     }
 
+    if (!ALLOWED_AVATAR_MIME_TYPES.has(file.type)) {
+      setStatus("error");
+      setError(t("profileAvatarTypeError"));
+      return;
+    }
+
+    if (file.size > MAX_AVATAR_BYTES) {
+      setStatus("error");
+      setError(t("profileAvatarSizeError"));
+      return;
+    }
+
     setStatus("uploading");
     setError(null);
 
@@ -35,14 +55,22 @@ export default function ProfilePage() {
       });
 
       if (!response.ok) {
-        const payload = await response.json().catch(() => null);
-        throw new Error(payload?.error || t("profileUploadFailed"));
+        const contentType = response.headers.get("content-type") ?? "";
+        const payload = contentType.includes("application/json")
+          ? await response.json().catch(() => null)
+          : null;
+        const textFallback = payload ? null : await response.text().catch(() => null);
+        throw new Error(payload?.error || textFallback || t("profileUploadFailed"));
       }
 
       setStatus("success");
       setFile(null);
     } catch (err) {
       setStatus("error");
+      if (err instanceof Error && /failed to fetch/i.test(err.message)) {
+        setError(t("profileUploadNetworkError"));
+        return;
+      }
       setError(err instanceof Error ? err.message : t("authUnexpectedError"));
     }
   };
@@ -71,7 +99,31 @@ export default function ProfilePage() {
           <input
             type="file"
             accept="image/*"
-            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+            onChange={(event) => {
+              const nextFile = event.target.files?.[0] ?? null;
+              if (!nextFile) {
+                setFile(null);
+                return;
+              }
+
+              if (!ALLOWED_AVATAR_MIME_TYPES.has(nextFile.type)) {
+                setStatus("error");
+                setFile(null);
+                setError(t("profileAvatarTypeError"));
+                return;
+              }
+
+              if (nextFile.size > MAX_AVATAR_BYTES) {
+                setStatus("error");
+                setFile(null);
+                setError(t("profileAvatarSizeError"));
+                return;
+              }
+
+              setStatus("idle");
+              setError(null);
+              setFile(nextFile);
+            }}
             className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700"
           />
           <button
