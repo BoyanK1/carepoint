@@ -76,10 +76,10 @@ export function Footer() {
                   href="/appointments"
                   className="block transition hover:text-slate-900"
                 >
-                  My appointments
+                  {t("footerMyAppointments")}
                 </Link>
                 <Link href="/history" className="block transition hover:text-slate-900">
-                  History timeline
+                  {t("footerHistoryTimeline")}
                 </Link>
               </div>
 
@@ -116,7 +116,7 @@ export function Footer() {
                   href="/notifications"
                   className="block transition hover:text-slate-900"
                 >
-                  Notifications
+                  {t("footerNotifications")}
                 </Link>
               </div>
 

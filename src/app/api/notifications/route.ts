@@ -6,7 +6,7 @@ import { hasTrustedOrigin } from "@/lib/security/request-guard";
 
 const UUID_PATTERN = /^[0-9a-fA-F-]{36}$/;
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -18,6 +18,23 @@ export async function GET() {
       { error: "Supabase admin is not configured." },
       { status: 500 }
     );
+  }
+
+  const { searchParams } = new URL(request.url);
+  const summary = searchParams.get("summary") === "1";
+
+  if (summary) {
+    const { count, error } = await admin
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", session.user.id)
+      .eq("is_read", false);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ unreadCount: count ?? 0 });
   }
 
   const { data, error } = await admin

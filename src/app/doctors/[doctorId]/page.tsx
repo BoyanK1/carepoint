@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Avatar } from "@/components/Avatar";
+import { useLanguage } from "@/components/LanguageProvider";
 
 interface RatingBreakdownItem {
   stars: number;
@@ -47,6 +48,8 @@ export default function DoctorDetailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session } = useSession();
+  const { t, lang } = useLanguage();
+  const locale = lang === "bg" ? "bg-BG" : "en-US";
 
   const doctorId = params?.doctorId;
   const [doctor, setDoctor] = useState<DoctorDetail | null>(null);
@@ -76,14 +79,14 @@ export default function DoctorDetailPage() {
     };
 
     if (!response.ok || !payload.doctor) {
-      setError(payload.error || "Could not load doctor profile.");
+      setError(payload.error || t("doctorDetailLoadError"));
       setLoading(false);
       return;
     }
 
     setDoctor(payload.doctor);
     setLoading(false);
-  }, [doctorId]);
+  }, [doctorId, t]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -97,7 +100,7 @@ export default function DoctorDetailPage() {
 
     const groups = new Map<string, SlotItem[]>();
     for (const slot of doctor.availableSlots) {
-      const key = new Date(slot.startsAt).toLocaleDateString(undefined, {
+      const key = new Date(slot.startsAt).toLocaleDateString(locale, {
         weekday: "short",
         month: "short",
         day: "numeric",
@@ -111,7 +114,7 @@ export default function DoctorDetailPage() {
       dayLabel,
       slots,
     }));
-  }, [doctor]);
+  }, [doctor, locale]);
 
   async function toggleFavorite() {
     if (!doctor) {
@@ -142,7 +145,7 @@ export default function DoctorDetailPage() {
       return;
     }
     if (session.user.id === doctor.userId) {
-      setBookingError("You cannot book an appointment with yourself.");
+      setBookingError(t("doctorDetailBookYourselfError"));
       return;
     }
 
@@ -163,12 +166,12 @@ export default function DoctorDetailPage() {
     const payload = (await response.json()) as { ok?: boolean; error?: string };
 
     if (!response.ok || !payload.ok) {
-      setBookingError(payload.error || "Could not book this slot.");
+      setBookingError(payload.error || t("doctorDetailBookingError"));
       setPendingSlot(null);
       return;
     }
 
-    setBookingMessage("Appointment booked. Check your notifications for updates.");
+    setBookingMessage(t("doctorDetailBookedSuccess"));
     setPendingSlot(null);
     setReason("");
     await loadDoctor();
@@ -194,11 +197,11 @@ export default function DoctorDetailPage() {
 
     const payload = (await response.json()) as { ok?: boolean; error?: string };
     if (!response.ok || !payload.ok) {
-      setReviewError(payload.error || "Could not submit review.");
+      setReviewError(payload.error || t("doctorDetailReviewError"));
       return;
     }
 
-    setReviewMessage("Review submitted.");
+    setReviewMessage(t("doctorDetailReviewSubmitted"));
     setComment("");
     await loadDoctor();
   }
@@ -207,7 +210,7 @@ export default function DoctorDetailPage() {
     return (
       <div className="mx-auto max-w-5xl px-6 py-12">
         <div className="rounded-2xl border border-slate-200 bg-white p-6 text-slate-500">
-          Loading doctor profile...
+          {t("doctorDetailLoading")}
         </div>
       </div>
     );
@@ -217,11 +220,18 @@ export default function DoctorDetailPage() {
     return (
       <div className="mx-auto max-w-5xl px-6 py-12">
         <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-rose-700">
-          {error || "Doctor not found."}
+          {error || t("doctorDetailNotFound")}
         </div>
       </div>
     );
   }
+
+  const ratingSummary =
+    doctor.ratingCount > 0 && doctor.ratingAverage
+      ? t("doctorDetailRatingFromReviews")
+          .replace("{rating}", String(doctor.ratingAverage))
+          .replace("{count}", String(doctor.ratingCount))
+      : t("doctorDetailNoRating");
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-12">
@@ -232,16 +242,12 @@ export default function DoctorDetailPage() {
             <div>
               <h1 className="text-3xl font-semibold text-slate-900">{doctor.name}</h1>
               <p className="text-slate-600">
-                {doctor.specialty || "General medicine"} · {doctor.city || "N/A"}
+                {doctor.specialty || t("doctorDetailGeneralSpecialty")} · {doctor.city || t("commonNotAvailable")}
               </p>
-              <p className="mt-1 text-sm text-slate-500">
-                {doctor.ratingCount > 0 && doctor.ratingAverage
-                  ? `${doctor.ratingAverage}/5 from ${doctor.ratingCount} reviews`
-                  : "No reviews yet"}
-              </p>
+              <p className="mt-1 text-sm text-slate-500">{ratingSummary}</p>
               {searchParams.get("rebook") === "1" && (
                 <p className="mt-2 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
-                  Quick rebooking mode
+                  {t("doctorDetailQuickRebookingMode")}
                 </p>
               )}
             </div>
@@ -257,14 +263,14 @@ export default function DoctorDetailPage() {
                   : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
               }`}
             >
-              {doctor.isFavorite ? "Favorited" : "Add to favorites"}
+              {doctor.isFavorite ? t("doctorsFavorited") : t("doctorsAddFavorite")}
             </button>
             <button
               type="button"
               onClick={() => router.push("/appointments")}
               className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300"
             >
-              My appointments
+              {t("doctorDetailMyAppointments")}
             </button>
           </div>
         </div>
@@ -272,29 +278,27 @@ export default function DoctorDetailPage() {
 
       <section className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-semibold text-slate-900">Schedule and booking</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Pick a time slot. Conflicts are blocked automatically.
-          </p>
+          <h2 className="text-xl font-semibold text-slate-900">{t("doctorDetailScheduleTitle")}</h2>
+          <p className="mt-1 text-sm text-slate-600">{t("doctorDetailScheduleSubtitle")}</p>
 
           <label className="mt-4 grid gap-2 text-sm font-medium text-slate-700">
-            Booking note (optional)
+            {t("doctorDetailBookingNote")}
             <textarea
               value={reason}
               onChange={(event) => setReason(event.target.value.slice(0, 500))}
               className="min-h-20 rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-slate-400 focus:outline-none"
-              placeholder="Reason for visit"
+              placeholder={t("doctorDetailReasonPlaceholder")}
             />
           </label>
 
           <div className="mt-5 space-y-4">
             {isSelfDoctor && (
               <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
-                You are viewing your own doctor profile. Self-booking is disabled.
+                {t("doctorDetailSelfBookingDisabled")}
               </p>
             )}
             {groupedSlots.length === 0 ? (
-              <p className="text-sm text-slate-500">No open slots in the next 30 days.</p>
+              <p className="text-sm text-slate-500">{t("doctorDetailNoOpenSlots")}</p>
             ) : (
               groupedSlots.map((group) => (
                 <div key={group.dayLabel}>
@@ -311,8 +315,8 @@ export default function DoctorDetailPage() {
                         className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {pendingSlot === slot.startsAt
-                          ? "Booking..."
-                          : new Date(slot.startsAt).toLocaleTimeString(undefined, {
+                          ? t("doctorDetailBooking")
+                          : new Date(slot.startsAt).toLocaleTimeString(locale, {
                               hour: "2-digit",
                               minute: "2-digit",
                             })}
@@ -329,7 +333,7 @@ export default function DoctorDetailPage() {
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-semibold text-slate-900">Reviews breakdown</h2>
+          <h2 className="text-xl font-semibold text-slate-900">{t("doctorDetailReviewsBreakdown")}</h2>
           <div className="mt-4 space-y-2">
             {doctor.ratingBreakdown.map((item) => {
               const percent =
@@ -350,9 +354,9 @@ export default function DoctorDetailPage() {
           </div>
 
           <div className="mt-6 border-t border-slate-200 pt-4">
-            <p className="text-sm font-semibold text-slate-800">Leave a review</p>
+            <p className="text-sm font-semibold text-slate-800">{t("doctorDetailLeaveReview")}</p>
             <label className="mt-2 grid gap-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Rating
+              {t("doctorDetailRatingLabel")}
               <select
                 value={rating}
                 onChange={(event) => setRating(Number(event.target.value))}
@@ -366,12 +370,12 @@ export default function DoctorDetailPage() {
               </select>
             </label>
             <label className="mt-2 grid gap-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Comment
+              {t("doctorDetailCommentLabel")}
               <textarea
                 value={comment}
                 onChange={(event) => setComment(event.target.value)}
                 className="min-h-24 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-slate-400 focus:outline-none"
-                placeholder="Share your experience"
+                placeholder={t("doctorDetailCommentPlaceholder")}
               />
             </label>
             <button
@@ -379,7 +383,7 @@ export default function DoctorDetailPage() {
               onClick={() => void submitReview()}
               className="mt-3 rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800"
             >
-              Submit review
+              {t("doctorDetailSubmitReview")}
             </button>
             {reviewMessage && <p className="mt-2 text-sm text-emerald-600">{reviewMessage}</p>}
             {reviewError && <p className="mt-2 text-sm text-rose-600">{reviewError}</p>}
@@ -388,10 +392,10 @@ export default function DoctorDetailPage() {
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-semibold text-slate-900">Patient reviews</h2>
+        <h2 className="text-xl font-semibold text-slate-900">{t("doctorDetailPatientReviews")}</h2>
         <div className="mt-4 space-y-3">
           {doctor.reviews.length === 0 ? (
-            <p className="text-sm text-slate-500">No reviews yet.</p>
+            <p className="text-sm text-slate-500">{t("doctorsNoReviews")}</p>
           ) : (
             doctor.reviews.slice(0, 20).map((item) => (
               <article key={item.id} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -400,7 +404,7 @@ export default function DoctorDetailPage() {
                 </p>
                 <p className="mt-1 text-sm text-slate-700">{item.comment}</p>
                 <p className="mt-1 text-xs text-slate-500">
-                  {item.reviewerName} · {new Date(item.createdAt).toLocaleDateString()}
+                  {item.reviewerName} · {new Date(item.createdAt).toLocaleDateString(locale)}
                 </p>
               </article>
             ))

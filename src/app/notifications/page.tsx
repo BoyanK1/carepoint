@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { useLanguage } from "@/components/LanguageProvider";
 
 interface NotificationItem {
   id: string;
@@ -18,6 +19,9 @@ interface NotificationItem {
 export default function NotificationsPage() {
   const { status } = useSession();
   const router = useRouter();
+  const { t, lang } = useLanguage();
+  const locale = lang === "bg" ? "bg-BG" : "en-US";
+
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,14 +37,14 @@ export default function NotificationsPage() {
     };
 
     if (!response.ok) {
-      setError(payload.error || "Could not load notifications.");
+      setError(payload.error || t("notificationsLoadError"));
       setLoading(false);
       return;
     }
 
     setNotifications(payload.notifications ?? []);
     setLoading(false);
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -61,6 +65,7 @@ export default function NotificationsPage() {
     });
 
     if (!response.ok) {
+      setError(t("notificationsLoadError"));
       return;
     }
 
@@ -77,29 +82,27 @@ export default function NotificationsPage() {
       <header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Inbox
+            {t("notificationsBadge")}
           </p>
-          <h1 className="text-3xl font-semibold text-slate-900">Notifications center</h1>
-          <p className="text-slate-600">
-            Booking and application status updates arrive here first.
-          </p>
+          <h1 className="text-3xl font-semibold text-slate-900">{t("notificationsTitle")}</h1>
+          <p className="text-slate-600">{t("notificationsSubtitle")}</p>
         </div>
         <button
           type="button"
           onClick={() => void markAllRead()}
           className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-300"
         >
-          Mark all as read
+          {t("notificationsMarkAllRead")}
         </button>
       </header>
 
       {loading ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500">
-          Loading notifications...
+          {t("notificationsLoading")}
         </div>
       ) : notifications.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-sm text-slate-500">
-          No notifications yet.
+          {t("notificationsEmpty")}
         </div>
       ) : (
         <section className="space-y-3">
@@ -115,7 +118,7 @@ export default function NotificationsPage() {
               <div className="flex items-center justify-between gap-3">
                 <p className="text-sm font-semibold text-slate-900">{item.title}</p>
                 <p className="text-xs text-slate-500">
-                  {new Date(item.created_at).toLocaleString()}
+                  {new Date(item.created_at).toLocaleString(locale)}
                 </p>
               </div>
               <p className="mt-1 text-sm text-slate-700">{item.message}</p>

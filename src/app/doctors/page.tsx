@@ -47,7 +47,7 @@ function cityScore(doctorCity: string | null, targetCity: string) {
 export default function DoctorsPage() {
   const { data: session } = useSession();
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
 
   const [query, setQuery] = useState("");
   const [specialty, setSpecialty] = useState("");
@@ -183,16 +183,16 @@ export default function DoctorsPage() {
           />
         </label>
         <label className="grid gap-2 text-sm font-medium text-slate-700">
-          Sort by
+          {t("doctorsSortLabel")}
           <select
             value={sort}
             onChange={(event) => setSort(event.target.value as SortMode)}
             className="rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-slate-400 focus:outline-none"
           >
-            <option value="relevance">Name</option>
-            <option value="rating">Rating</option>
-            <option value="nearest">Nearest city</option>
-            <option value="soonest">Soonest availability</option>
+            <option value="relevance">{t("doctorsSortName")}</option>
+            <option value="rating">{t("doctorsSortRating")}</option>
+            <option value="nearest">{t("doctorsSortNearest")}</option>
+            <option value="soonest">{t("doctorsSortSoonest")}</option>
           </select>
         </label>
       </section>
@@ -232,8 +232,13 @@ export default function DoctorsPage() {
                     </p>
                     <p className="mt-1 text-xs text-slate-500">
                       {doctor.soonestAvailableAt
-                        ? `Soonest slot: ${new Date(doctor.soonestAvailableAt).toLocaleString()}`
-                        : "No open slots in the next 30 days"}
+                        ? t("doctorsSoonestSlot").replace(
+                            "{date}",
+                            new Date(doctor.soonestAvailableAt).toLocaleString(
+                              lang === "bg" ? "bg-BG" : "en-US"
+                            )
+                          )
+                        : t("doctorsNoOpenSlots")}
                     </p>
                   </div>
                 </div>
@@ -248,24 +253,24 @@ export default function DoctorsPage() {
                         : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
                     }`}
                   >
-                    {doctor.isFavorite ? "Favorited" : "Add to favorites"}
+                    {doctor.isFavorite ? t("doctorsFavorited") : t("doctorsAddFavorite")}
                   </button>
                   <Link
                     href={`/doctors/${doctor.id}`}
                     className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
                   >
-                    View profile
+                    {t("doctorsViewProfile")}
                   </Link>
                   {session?.user?.id && session.user.id === doctor.userId ? (
                     <span className="rounded-full border border-slate-200 bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-500">
-                      You cannot book yourself
+                      {t("doctorsCannotBookSelf")}
                     </span>
                   ) : (
                     <Link
                       href={`/doctors/${doctor.id}`}
                       className="rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800"
                     >
-                      {session ? "Book now" : t("doctorsSignInToRequest")}
+                      {session ? t("doctorsBookNow") : t("doctorsSignInToRequest")}
                     </Link>
                   )}
                 </div>

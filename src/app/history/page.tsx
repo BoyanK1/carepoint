@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { useLanguage } from "@/components/LanguageProvider";
 
 interface HistoryItem {
   id: string;
@@ -27,8 +28,8 @@ const statusClasses: Record<string, string> = {
   cancelled: "border-rose-200 bg-rose-50 text-rose-700",
 };
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
+function formatDate(value: string, locale: string) {
+  return new Intl.DateTimeFormat(locale, {
     weekday: "short",
     month: "short",
     day: "numeric",
@@ -41,6 +42,8 @@ function formatDate(value: string) {
 export default function HistoryPage() {
   const { status } = useSession();
   const router = useRouter();
+  const { t, lang } = useLanguage();
+  const locale = lang === "bg" ? "bg-BG" : "en-US";
 
   const [items, setItems] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,6 +51,24 @@ export default function HistoryPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+
+  const getStatusLabel = useCallback(
+    (value: string) => {
+      switch (value) {
+        case "scheduled":
+          return t("statusScheduled");
+        case "confirmed":
+          return t("statusConfirmed");
+        case "completed":
+          return t("statusCompleted");
+        case "cancelled":
+          return t("statusCancelled");
+        default:
+          return t("statusAll");
+      }
+    },
+    [t]
+  );
 
   const loadHistory = useCallback(async () => {
     setLoading(true);
@@ -71,14 +92,14 @@ export default function HistoryPage() {
     };
 
     if (!response.ok) {
-      setError(payload.error || "Could not load history.");
+      setError(payload.error || t("historyLoadError"));
       setLoading(false);
       return;
     }
 
     setItems(payload.history ?? []);
     setLoading(false);
-  }, [fromDate, statusFilter, toDate]);
+  }, [fromDate, statusFilter, t, toDate]);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -95,14 +116,12 @@ export default function HistoryPage() {
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6 lg:gap-8 lg:py-12">
       <header className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-slate-100 p-6 shadow-sm sm:p-8">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-          Patient tools
+          {t("historyBadge")}
         </p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
-          Appointment history
+          {t("historyTitle")}
         </h1>
-        <p className="mt-2 max-w-2xl text-sm text-slate-600 sm:text-base">
-          Review past activity, filter by status or date range, and export your appointment records.
-        </p>
+        <p className="mt-2 max-w-2xl text-sm text-slate-600 sm:text-base">{t("historySubtitle")}</p>
       </header>
 
       {error && (
@@ -114,22 +133,22 @@ export default function HistoryPage() {
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="grid gap-3 md:grid-cols-4 md:items-end">
           <label className="grid gap-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Status
+            {t("historyStatus")}
             <select
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value)}
               className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-300"
             >
-              <option value="all">All</option>
-              <option value="scheduled">Scheduled</option>
-              <option value="confirmed">Confirmed</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
+              <option value="all">{t("statusAll")}</option>
+              <option value="scheduled">{t("statusScheduled")}</option>
+              <option value="confirmed">{t("statusConfirmed")}</option>
+              <option value="completed">{t("statusCompleted")}</option>
+              <option value="cancelled">{t("statusCancelled")}</option>
             </select>
           </label>
 
           <label className="grid gap-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            From
+            {t("historyFrom")}
             <input
               type="date"
               value={fromDate}
@@ -139,7 +158,7 @@ export default function HistoryPage() {
           </label>
 
           <label className="grid gap-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            To
+            {t("historyTo")}
             <input
               type="date"
               value={toDate}
@@ -153,14 +172,14 @@ export default function HistoryPage() {
             onClick={() => void loadHistory()}
             className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
           >
-            Apply filters
+            {t("historyApplyFilters")}
           </button>
         </div>
       </section>
 
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <p className="text-sm text-slate-600">
-          Records found: <span className="font-semibold text-slate-900">{items.length}</span>
+          {t("historyRecordsFound").replace("{count}", String(items.length))}
         </p>
         <button
           type="button"
@@ -169,17 +188,17 @@ export default function HistoryPage() {
           }}
           className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
         >
-          Export CSV
+          {t("historyExportCsv")}
         </button>
       </div>
 
       {loading ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500">
-          Loading timeline...
+          {t("historyLoading")}
         </div>
       ) : items.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500">
-          No records match your filters.
+          {t("historyEmpty")}
         </div>
       ) : (
         <section className="space-y-4">
@@ -196,39 +215,38 @@ export default function HistoryPage() {
                     <span
                       className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${badgeClass}`}
                     >
-                      {item.status}
+                      {getStatusLabel(item.status)}
                     </span>
-                    <p className="text-lg font-semibold text-slate-900">{formatDate(item.startsAt)}</p>
+                    <p className="text-lg font-semibold text-slate-900">{formatDate(item.startsAt, locale)}</p>
                     <p className="text-sm text-slate-700">
-                      {item.doctor?.name || "Doctor"}
+                      {item.doctor?.name || t("historyDoctorFallback")}
                       {item.doctor?.specialty ? ` · ${item.doctor.specialty}` : ""}
                       {item.doctor?.city ? ` · ${item.doctor.city}` : ""}
                     </p>
-                    <p className="text-sm text-slate-500">{item.reason || "No note added."}</p>
+                    <p className="text-sm text-slate-500">{item.reason || t("historyNoNote")}</p>
                   </div>
                   <div className="text-right text-xs text-slate-500">
-                    <p>Record ID</p>
+                    <p>{t("historyRecordId")}</p>
                     <p className="mt-0.5 max-w-52 truncate font-medium text-slate-600">{item.id}</p>
                   </div>
                 </div>
                 <div className="mt-4 grid gap-2 text-xs text-slate-500 sm:grid-cols-2">
                   <p>
-                    Logged on{" "}
-                    <span className="font-medium text-slate-700">
-                      {new Date(item.createdAt).toLocaleDateString()}
-                    </span>
+                    {t("historyLoggedOn").replace(
+                      "{date}",
+                      new Date(item.createdAt).toLocaleDateString(locale)
+                    )}
                   </p>
                   {item.canceledAt ? (
                     <p className="sm:text-right">
-                      Cancelled on{" "}
-                      <span className="font-medium text-rose-700">
-                        {new Date(item.canceledAt).toLocaleDateString()}
-                      </span>
+                      {t("historyCancelledOn").replace(
+                        "{date}",
+                        new Date(item.canceledAt).toLocaleDateString(locale)
+                      )}
                     </p>
                   ) : (
                     <p className="sm:text-right">
-                      Status updated:{" "}
-                      <span className="font-medium text-slate-700">{item.status}</span>
+                      {t("historyStatusUpdated").replace("{status}", getStatusLabel(item.status))}
                     </p>
                   )}
                 </div>

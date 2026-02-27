@@ -49,7 +49,7 @@ export function NavbarClient({ user }: NavbarClientProps) {
     const abort = new AbortController();
     const loadUnreadCount = async () => {
       try {
-        const response = await fetch("/api/notifications", {
+        const response = await fetch("/api/notifications?summary=1", {
           cache: "no-store",
           signal: abort.signal,
         });
@@ -58,11 +58,13 @@ export function NavbarClient({ user }: NavbarClientProps) {
         }
 
         const payload = (await response.json()) as {
+          unreadCount?: number;
           notifications?: Array<{ is_read?: boolean }>;
         };
-        const unread = (payload.notifications ?? []).filter(
-          (item) => !item.is_read
-        ).length;
+        const unread =
+          typeof payload.unreadCount === "number"
+            ? payload.unreadCount
+            : (payload.notifications ?? []).filter((item) => !item.is_read).length;
         setUnreadCount(unread);
       } catch {
         // Keep navigation stable if notifications API fails.
@@ -124,7 +126,7 @@ export function NavbarClient({ user }: NavbarClientProps) {
                     href="/appointments"
                     className="rounded-full px-3 py-1 whitespace-nowrap transition hover:bg-slate-100 hover:text-slate-900"
                   >
-                    Appointments
+                    {t("navAppointments")}
                   </Link>
                 )}
                 {user && (
@@ -200,7 +202,7 @@ export function NavbarClient({ user }: NavbarClientProps) {
                   href="/appointments"
                   className="rounded-full px-3 py-1.5 whitespace-nowrap transition hover:bg-slate-100 hover:text-slate-900"
                 >
-                  Appointments
+                  {t("navAppointments")}
                 </Link>
               )}
               {user && (

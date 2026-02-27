@@ -147,13 +147,13 @@ export function DashboardClient({
               href="/appointments"
               className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
             >
-              My appointments
+              {t("dashboardMyAppointments")}
             </Link>
             <Link
               href="/history"
               className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
             >
-              Appointment history
+              {t("dashboardAppointmentHistory")}
             </Link>
           </div>
         </div>
