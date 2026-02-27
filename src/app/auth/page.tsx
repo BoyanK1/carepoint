@@ -6,9 +6,12 @@ import { useLanguage } from "@/components/LanguageProvider";
 
 export default function AuthPage() {
   const { t } = useLanguage();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
+  const [signInEmail, setSignInEmail] = useState("");
+  const [signInPassword, setSignInPassword] = useState("");
+  const [signUpName, setSignUpName] = useState("");
+  const [signUpCity, setSignUpCity] = useState("");
+  const [signUpEmail, setSignUpEmail] = useState("");
+  const [signUpPassword, setSignUpPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -20,8 +23,8 @@ export default function AuthPage() {
     setMessage(null);
 
     const result = await signIn("credentials", {
-      email,
-      password,
+      email: signInEmail,
+      password: signInPassword,
       redirect: true,
       callbackUrl: "/dashboard",
     });
@@ -40,7 +43,12 @@ export default function AuthPage() {
       const response = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({
+          name: signUpName,
+          city: signUpCity,
+          email: signUpEmail,
+          password: signUpPassword,
+        }),
       });
 
       if (!response.ok) {
@@ -75,8 +83,8 @@ export default function AuthPage() {
               {t("authEmail")}
               <input
                 type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                value={signInEmail}
+                onChange={(event) => setSignInEmail(event.target.value)}
                 className="rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-slate-400 focus:outline-none"
                 required
               />
@@ -85,8 +93,8 @@ export default function AuthPage() {
               {t("authPassword")}
               <input
                 type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
+                value={signInPassword}
+                onChange={(event) => setSignInPassword(event.target.value)}
                 className="rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-slate-400 focus:outline-none"
                 required
               />
@@ -107,18 +115,27 @@ export default function AuthPage() {
             <label className="grid gap-2 text-sm font-medium text-slate-700">
               {t("authName")}
               <input
-                value={name}
-                onChange={(event) => setName(event.target.value)}
+                value={signUpName}
+                onChange={(event) => setSignUpName(event.target.value)}
                 className="rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-slate-400 focus:outline-none"
                 placeholder={t("commonOptional")}
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-medium text-slate-700">
+              {t("authCity")}
+              <input
+                value={signUpCity}
+                onChange={(event) => setSignUpCity(event.target.value)}
+                className="rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-slate-400 focus:outline-none"
+                placeholder={t("authCityPlaceholder")}
               />
             </label>
             <label className="grid gap-2 text-sm font-medium text-slate-700">
               {t("authEmail")}
               <input
                 type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                value={signUpEmail}
+                onChange={(event) => setSignUpEmail(event.target.value)}
                 className="rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-slate-400 focus:outline-none"
                 required
               />
@@ -127,8 +144,8 @@ export default function AuthPage() {
               {t("authPassword")}
               <input
                 type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
+                value={signUpPassword}
+                onChange={(event) => setSignUpPassword(event.target.value)}
                 className="rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-slate-400 focus:outline-none"
                 required
               />

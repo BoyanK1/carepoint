@@ -198,6 +198,13 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid new appointment time." }, { status: 400 });
   }
 
+  if (nextStart.toISOString() === new Date(appointment.starts_at).toISOString()) {
+    return NextResponse.json(
+      { error: "This appointment is already at that time." },
+      { status: 400 }
+    );
+  }
+
   const { data: availabilityData, error: availabilityError } = await admin
     .from("doctor_availability")
     .select("doctor_profile_id, day_of_week, start_time, end_time, slot_minutes, is_active")
@@ -225,6 +232,23 @@ export async function PATCH(
   }
 
   const nextEnd = new Date(nextStart.getTime() + matchingRow.slot_minutes * 60_000);
+
+  const { data: duplicateAppointment } = await admin
+    .from("appointments")
+    .select("id")
+    .eq("patient_user_id", session.user.id)
+    .eq("doctor_profile_id", appointment.doctor_profile_id)
+    .eq("starts_at", nextStart.toISOString())
+    .in("status", ["scheduled", "confirmed"])
+    .neq("id", id)
+    .maybeSingle();
+
+  if (duplicateAppointment?.id) {
+    return NextResponse.json(
+      { error: "You already have this appointment booked." },
+      { status: 409 }
+    );
+  }
 
   const { error: updateError } = await admin
     .from("appointments")

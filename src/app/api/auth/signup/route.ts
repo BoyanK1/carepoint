@@ -8,6 +8,7 @@ import { hashEmail, normalizeUserEmail } from "@/lib/security/pii";
 const SIGNUP_WINDOW_SECONDS = 15 * 60;
 const MAX_SIGNUPS_PER_WINDOW = 8;
 const MAX_NAME_LENGTH = 120;
+const MAX_CITY_LENGTH = 120;
 
 function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -34,6 +35,7 @@ export async function POST(request: Request) {
   const email = typeof body?.email === "string" ? normalizeUserEmail(body.email) : "";
   const password = typeof body?.password === "string" ? body.password : "";
   const name = typeof body?.name === "string" ? body.name.trim() : "";
+  const city = typeof body?.city === "string" ? body.city.trim() : "";
 
   const rateLimit = await consumeRateLimit({
     namespace: "signup",
@@ -81,6 +83,13 @@ export async function POST(request: Request) {
     );
   }
 
+  if (city.length > MAX_CITY_LENGTH) {
+    return NextResponse.json(
+      { error: "City must be under 120 characters." },
+      { status: 400 }
+    );
+  }
+
   const supabase = getSupabaseClient();
   // Supabase Auth handles secure password hashing/salting internally.
   const { data, error } = await supabase.auth.signUp({
@@ -104,6 +113,7 @@ export async function POST(request: Request) {
       full_name: name || null,
       email: null,
       email_hash: hashEmail(email),
+      city: city || null,
       role: "patient",
     };
 
@@ -119,6 +129,7 @@ export async function POST(request: Request) {
           id: data.user.id,
           full_name: name || null,
           email: null,
+          city: city || null,
           role: "patient",
         });
       }

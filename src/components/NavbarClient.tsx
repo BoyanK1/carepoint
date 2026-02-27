@@ -18,7 +18,21 @@ interface NavbarClientProps {
 
 export function NavbarClient({ user }: NavbarClientProps) {
   const [scrolled, setScrolled] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const { t } = useLanguage();
+  const effectiveUnreadCount = user ? unreadCount : 0;
+
+  const roleLabel =
+    user?.role === "doctor"
+      ? t("navRoleDoctor")
+      : user?.role === "admin"
+        ? t("navRoleAdmin")
+        : t("navRolePatient");
+
+  const notificationsLabel =
+    effectiveUnreadCount > 0
+      ? `${t("navNotifications")} ${effectiveUnreadCount >= 10 ? "10+" : effectiveUnreadCount}`
+      : t("navNotifications");
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 12);
@@ -26,6 +40,38 @@ export function NavbarClient({ user }: NavbarClientProps) {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    const abort = new AbortController();
+    const loadUnreadCount = async () => {
+      try {
+        const response = await fetch("/api/notifications", {
+          cache: "no-store",
+          signal: abort.signal,
+        });
+        if (!response.ok) {
+          return;
+        }
+
+        const payload = (await response.json()) as {
+          notifications?: Array<{ is_read?: boolean }>;
+        };
+        const unread = (payload.notifications ?? []).filter(
+          (item) => !item.is_read
+        ).length;
+        setUnreadCount(unread);
+      } catch {
+        // Keep navigation stable if notifications API fails.
+      }
+    };
+
+    void loadUnreadCount();
+    return () => abort.abort();
+  }, [user]);
 
   return (
     <header
@@ -57,12 +103,14 @@ export function NavbarClient({ user }: NavbarClientProps) {
                 >
                   {t("navDoctors")}
                 </Link>
-                <Link
-                  href="/doctor/apply"
-                  className="rounded-full px-3 py-1 whitespace-nowrap transition hover:bg-slate-100 hover:text-slate-900"
-                >
-                  {t("navBecomeDoctor")}
-                </Link>
+                {user?.role !== "doctor" && (
+                  <Link
+                    href="/doctor/apply"
+                    className="rounded-full px-3 py-1 whitespace-nowrap transition hover:bg-slate-100 hover:text-slate-900"
+                  >
+                    {t("navBecomeDoctor")}
+                  </Link>
+                )}
                 {user && (
                   <Link
                     href="/dashboard"
@@ -84,7 +132,7 @@ export function NavbarClient({ user }: NavbarClientProps) {
                     href="/notifications"
                     className="rounded-full px-3 py-1 whitespace-nowrap transition hover:bg-slate-100 hover:text-slate-900"
                   >
-                    Notifications
+                    {notificationsLabel}
                   </Link>
                 )}
                 {user?.role === "admin" && (
@@ -107,6 +155,9 @@ export function NavbarClient({ user }: NavbarClientProps) {
                 <span className="max-w-[9rem] truncate text-sm font-medium text-slate-700">
                   {user.name || user.email || t("navAccount")}
                 </span>
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+                  {roleLabel}
+                </span>
               </Link>
             ) : (
               <Link
@@ -128,12 +179,14 @@ export function NavbarClient({ user }: NavbarClientProps) {
               >
                 {t("navDoctors")}
               </Link>
-              <Link
-                href="/doctor/apply"
-                className="rounded-full px-3 py-1.5 whitespace-nowrap transition hover:bg-slate-100 hover:text-slate-900"
-              >
-                {t("navBecomeDoctor")}
-              </Link>
+              {user?.role !== "doctor" && (
+                <Link
+                  href="/doctor/apply"
+                  className="rounded-full px-3 py-1.5 whitespace-nowrap transition hover:bg-slate-100 hover:text-slate-900"
+                >
+                  {t("navBecomeDoctor")}
+                </Link>
+              )}
               {user && (
                 <Link
                   href="/dashboard"
@@ -155,7 +208,7 @@ export function NavbarClient({ user }: NavbarClientProps) {
                   href="/notifications"
                   className="rounded-full px-3 py-1.5 whitespace-nowrap transition hover:bg-slate-100 hover:text-slate-900"
                 >
-                  Notifications
+                  {notificationsLabel}
                 </Link>
               )}
               {user?.role === "admin" && (

@@ -223,6 +223,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Doctor not found." }, { status: 404 });
   }
 
+  if (doctor.user_id === session.user.id) {
+    return NextResponse.json(
+      { error: "You cannot book an appointment with yourself." },
+      { status: 400 }
+    );
+  }
+
   const { data: availabilityData, error: availabilityError } = await admin
     .from("doctor_availability")
     .select("doctor_profile_id, day_of_week, start_time, end_time, slot_minutes, is_active")
@@ -250,6 +257,22 @@ export async function POST(request: Request) {
   }
 
   const slotEnd = new Date(slotStart.getTime() + matchingRow.slot_minutes * 60_000);
+
+  const { data: duplicateAppointment } = await admin
+    .from("appointments")
+    .select("id")
+    .eq("patient_user_id", session.user.id)
+    .eq("doctor_profile_id", doctorProfileId)
+    .eq("starts_at", slotStart.toISOString())
+    .in("status", ["scheduled", "confirmed"])
+    .maybeSingle();
+
+  if (duplicateAppointment?.id) {
+    return NextResponse.json(
+      { error: "You already have this appointment booked." },
+      { status: 409 }
+    );
+  }
 
   const { data: appointment, error: insertError } = await admin
     .from("appointments")

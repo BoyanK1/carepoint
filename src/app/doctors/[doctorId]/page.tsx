@@ -60,6 +60,7 @@ export default function DoctorDetailPage() {
   const [reviewMessage, setReviewMessage] = useState<string | null>(null);
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [pendingSlot, setPendingSlot] = useState<string | null>(null);
+  const isSelfDoctor = Boolean(session?.user?.id && doctor?.userId && session.user.id === doctor.userId);
 
   const loadDoctor = useCallback(async () => {
     if (!doctorId) {
@@ -138,6 +139,10 @@ export default function DoctorDetailPage() {
     }
     if (!session) {
       router.push("/auth");
+      return;
+    }
+    if (session.user.id === doctor.userId) {
+      setBookingError("You cannot book an appointment with yourself.");
       return;
     }
 
@@ -283,6 +288,11 @@ export default function DoctorDetailPage() {
           </label>
 
           <div className="mt-5 space-y-4">
+            {isSelfDoctor && (
+              <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+                You are viewing your own doctor profile. Self-booking is disabled.
+              </p>
+            )}
             {groupedSlots.length === 0 ? (
               <p className="text-sm text-slate-500">No open slots in the next 30 days.</p>
             ) : (
@@ -297,7 +307,7 @@ export default function DoctorDetailPage() {
                         key={slot.startsAt}
                         type="button"
                         onClick={() => void bookSlot(slot)}
-                        disabled={pendingSlot === slot.startsAt}
+                        disabled={pendingSlot === slot.startsAt || isSelfDoctor}
                         className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {pendingSlot === slot.startsAt

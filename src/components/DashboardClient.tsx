@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { Avatar } from "@/components/Avatar";
 import { useLanguage } from "@/components/LanguageProvider";
 
@@ -33,6 +34,36 @@ export function DashboardClient({
           : t("dashboardRolePatient");
 
   const welcome = t("dashboardWelcome").replace("{name}", displayName);
+  const [cityValue, setCityValue] = useState(city ?? "");
+  const [savedCity, setSavedCity] = useState(city ?? "");
+  const [cityStatus, setCityStatus] = useState<"idle" | "saving" | "ok" | "error">("idle");
+  const [cityError, setCityError] = useState<string | null>(null);
+
+  const canApplyDoctor = role !== "doctor";
+
+  async function saveCity() {
+    setCityStatus("saving");
+    setCityError(null);
+
+    const response = await fetch("/api/profile/city", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ city: cityValue }),
+    });
+
+    const payload = (await response.json().catch(() => null)) as
+      | { ok?: boolean; city?: string; error?: string }
+      | null;
+
+    if (!response.ok || !payload?.ok) {
+      setCityStatus("error");
+      setCityError(payload?.error || t("dashboardCitySaveError"));
+      return;
+    }
+
+    setSavedCity(payload.city ?? cityValue);
+    setCityStatus("ok");
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-12">
@@ -56,8 +87,41 @@ export function DashboardClient({
             </p>
             <p>
               <span className="font-semibold">{t("dashboardCityLabel")}</span>{" "}
-              {city ?? t("dashboardNotSet")}
+              {savedCity || t("dashboardNotSet")}
             </p>
+            <div className="mt-2 grid gap-2">
+              <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                {t("dashboardCityInputLabel")}
+              </label>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <input
+                  value={cityValue}
+                  onChange={(event) => setCityValue(event.target.value)}
+                  placeholder={t("dashboardCityInputPlaceholder")}
+                  className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-slate-400 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => void saveCity()}
+                  disabled={cityStatus === "saving"}
+                  className="rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {cityStatus === "saving"
+                    ? t("dashboardCitySaving")
+                    : t("dashboardCitySave")}
+                </button>
+              </div>
+              {cityStatus === "ok" && (
+                <p className="text-xs font-medium text-emerald-600">
+                  {t("dashboardCitySaved")}
+                </p>
+              )}
+              {cityStatus === "error" && (
+                <p className="text-xs font-medium text-rose-600">
+                  {cityError || t("dashboardCitySaveError")}
+                </p>
+              )}
+            </div>
           </div>
         </div>
 
@@ -71,12 +135,14 @@ export function DashboardClient({
             >
               {t("dashboardUpdateProfile")}
             </Link>
-            <Link
-              href="/doctor/apply"
-              className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
-            >
-              {t("dashboardApplyDoctor")}
-            </Link>
+            {canApplyDoctor && (
+              <Link
+                href="/doctor/apply"
+                className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+              >
+                {t("dashboardApplyDoctor")}
+              </Link>
+            )}
             <Link
               href="/appointments"
               className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
