@@ -99,7 +99,20 @@ Use a Vercel Cron Job (or any scheduler) to call it every 5-15 minutes.
 
 ## 8) Data collection protocols (for diploma documentation)
 
-If you collect personal data (names, emails, cities, appointment details), document these minimum protocols:
+The complete compliance pack is included in:
+- `docs/compliance/README.md`
+- `docs/compliance/privacy-notice.md`
+- `docs/compliance/consent-text.md`
+- `docs/compliance/access-control.md`
+- `docs/compliance/data-minimization.md`
+- `docs/compliance/security-controls.md`
+- `docs/compliance/retention-policy.md`
+- `docs/compliance/incident-response.md`
+- `docs/compliance/data-rights-procedure.md`
+- `docs/compliance/vendor-register.md`
+- `docs/compliance/gdpr-mapping.md`
+
+If you collect personal data (names, emails, cities, appointment details), these are the minimum protocols to keep documented:
 
 1. Lawful basis + consent:
 - Explain why data is collected (appointment management, verification, notifications).
