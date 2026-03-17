@@ -17,6 +17,7 @@ interface ReviewItem {
   comment: string;
   createdAt: string;
   reviewerName: string;
+  verifiedVisit?: boolean;
 }
 
 interface SlotItem {
@@ -399,9 +400,16 @@ export default function DoctorDetailPage() {
           ) : (
             doctor.reviews.slice(0, 20).map((item) => (
               <article key={item.id} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  {stars(item.rating)}
-                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {stars(item.rating)}
+                  </p>
+                  {item.verifiedVisit && (
+                    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+                      {t("doctorDetailVerifiedVisit")}
+                    </span>
+                  )}
+                </div>
                 <p className="mt-1 text-sm text-slate-700">{item.comment}</p>
                 <p className="mt-1 text-xs text-slate-500">
                   {item.reviewerName} · {new Date(item.createdAt).toLocaleDateString(locale)}

@@ -129,6 +129,14 @@ export function NavbarClient({ user }: NavbarClientProps) {
                     {t("navAppointments")}
                   </Link>
                 )}
+                {(user?.role === "doctor" || user?.role === "admin") && (
+                  <Link
+                    href="/doctor/analytics"
+                    className="rounded-full px-3 py-1 whitespace-nowrap transition hover:bg-slate-100 hover:text-slate-900"
+                  >
+                    {t("navAnalytics")}
+                  </Link>
+                )}
                 {user && (
                   <Link
                     href="/notifications"
@@ -203,6 +211,14 @@ export function NavbarClient({ user }: NavbarClientProps) {
                   className="rounded-full px-3 py-1.5 whitespace-nowrap transition hover:bg-slate-100 hover:text-slate-900"
                 >
                   {t("navAppointments")}
+                </Link>
+              )}
+              {(user?.role === "doctor" || user?.role === "admin") && (
+                <Link
+                  href="/doctor/analytics"
+                  className="rounded-full px-3 py-1.5 whitespace-nowrap transition hover:bg-slate-100 hover:text-slate-900"
+                >
+                  {t("navAnalytics")}
                 </Link>
               )}
               {user && (

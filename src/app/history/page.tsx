@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -249,6 +250,14 @@ export default function HistoryPage() {
                       {t("historyStatusUpdated").replace("{status}", getStatusLabel(item.status))}
                     </p>
                   )}
+                </div>
+                <div className="mt-4 flex justify-end">
+                  <Link
+                    href={`/appointments/${item.id}`}
+                    className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+                  >
+                    {t("historyOpenAppointment")}
+                  </Link>
                 </div>
               </article>
             );

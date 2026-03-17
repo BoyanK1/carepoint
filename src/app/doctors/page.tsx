@@ -53,6 +53,7 @@ export default function DoctorsPage() {
   const [specialty, setSpecialty] = useState("");
   const [city, setCity] = useState("");
   const [sort, setSort] = useState<SortMode>("relevance");
+  const [emergencyOnly, setEmergencyOnly] = useState(false);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -96,7 +97,13 @@ export default function DoctorsPage() {
         ? normalize(doctor.specialty).includes(specialtyFilter)
         : true;
       const matchesCity = cityFilter ? normalize(doctor.city).includes(cityFilter) : true;
-      return matchesSearch && matchesSpecialty && matchesCity;
+      const hasEmergencySlot =
+        !doctor.soonestAvailableAt ||
+        new Date(doctor.soonestAvailableAt).getTime() > Date.now() + 24 * 60 * 60 * 1000
+          ? false
+          : true;
+      const matchesEmergency = emergencyOnly ? hasEmergencySlot : true;
+      return matchesSearch && matchesSpecialty && matchesCity && matchesEmergency;
     });
 
     return result.sort((a, b) => {
@@ -120,7 +127,7 @@ export default function DoctorsPage() {
       }
       return a.name.localeCompare(b.name);
     });
-  }, [city, doctors, query, sort, specialty]);
+  }, [city, doctors, emergencyOnly, query, sort, specialty]);
 
   async function toggleFavorite(doctor: Doctor) {
     if (!session) {
@@ -196,6 +203,21 @@ export default function DoctorsPage() {
           </select>
         </label>
       </section>
+      <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setEmergencyOnly((value) => !value)}
+            className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide transition sm:text-sm ${
+              emergencyOnly
+                ? "bg-rose-600 text-white hover:bg-rose-500"
+                : "border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:text-slate-900"
+            }`}
+          >
+            {t("doctorsEmergencyToggle")}
+          </button>
+        </div>
+      </section>
 
       <section className="grid gap-4">
         {loading ? (
@@ -227,7 +249,9 @@ export default function DoctorsPage() {
                     </p>
                     <p className="mt-1 text-xs text-slate-500">
                       {doctor.ratingCount > 0 && doctor.ratingAverage
-                        ? `${doctor.ratingAverage}/5 (${doctor.ratingCount} reviews)`
+                        ? t("doctorsReviewsCount")
+                            .replace("{rating}", String(doctor.ratingAverage))
+                            .replace("{count}", String(doctor.ratingCount))
                         : t("doctorsNoReviews")}
                     </p>
                     <p className="mt-1 text-xs text-slate-500">

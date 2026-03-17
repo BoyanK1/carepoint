@@ -84,7 +84,13 @@ alter table appointments
   add column if not exists reason text,
   add column if not exists canceled_at timestamptz,
   add column if not exists canceled_by uuid references auth.users(id) on delete set null,
-  add column if not exists rescheduled_from uuid references appointments(id) on delete set null;
+  add column if not exists rescheduled_from uuid references appointments(id) on delete set null,
+  add column if not exists payment_status text not null default 'unpaid',
+  add column if not exists deposit_amount numeric(10,2) not null default 0,
+  add column if not exists payment_provider text,
+  add column if not exists payment_reference text,
+  add column if not exists paid_at timestamptz,
+  add column if not exists external_calendar_event_id text;
 
 alter table user_profiles
   add column if not exists email_hash text;
@@ -102,6 +108,24 @@ begin
   end if;
 end;
 $$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'appointments_payment_status_check'
+  ) then
+    alter table appointments
+      add constraint appointments_payment_status_check
+      check (payment_status in ('unpaid', 'pending', 'paid', 'refunded', 'failed'));
+  end if;
+end;
+$$;
+
+alter table doctor_reviews
+  add column if not exists verified_visit boolean not null default false,
+  add column if not exists verified_appointment_id uuid references appointments(id) on delete set null;
 
 update appointments
 set ends_at = starts_at + interval '30 minutes'
@@ -182,6 +206,37 @@ create table if not exists appointment_events (
   created_at timestamptz not null default now()
 );
 
+create table if not exists appointment_messages (
+  id uuid primary key default gen_random_uuid(),
+  appointment_id uuid not null references appointments(id) on delete cascade,
+  sender_user_id uuid not null references auth.users(id) on delete cascade,
+  message text not null check (char_length(trim(message)) between 1 and 2000),
+  created_at timestamptz not null default now()
+);
+
+create table if not exists appointment_files (
+  id uuid primary key default gen_random_uuid(),
+  appointment_id uuid not null references appointments(id) on delete cascade,
+  uploader_user_id uuid not null references auth.users(id) on delete cascade,
+  storage_path text not null,
+  file_name text not null,
+  mime_type text,
+  size_bytes integer,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists appointment_reminders (
+  id uuid primary key default gen_random_uuid(),
+  appointment_id uuid not null references appointments(id) on delete cascade,
+  reminder_type text not null check (reminder_type in ('24h', '1h')),
+  scheduled_for timestamptz not null,
+  sent_at timestamptz,
+  status text not null default 'pending' check (status in ('pending', 'sent', 'failed')),
+  error_message text,
+  created_at timestamptz not null default now(),
+  unique (appointment_id, reminder_type)
+);
+
 create table if not exists admin_audit_logs (
   id uuid primary key default gen_random_uuid(),
   admin_user_id uuid not null references auth.users(id) on delete cascade,
@@ -203,6 +258,15 @@ create index if not exists idx_notifications_user_id
 
 create index if not exists idx_admin_audit_logs_created_at
   on admin_audit_logs(created_at desc);
+
+create index if not exists idx_appointment_messages_lookup
+  on appointment_messages(appointment_id, created_at desc);
+
+create index if not exists idx_appointment_files_lookup
+  on appointment_files(appointment_id, created_at desc);
+
+create index if not exists idx_appointment_reminders_pending
+  on appointment_reminders(status, scheduled_for);
 
 create index if not exists idx_user_profiles_email_hash
   on user_profiles(email_hash);
@@ -281,8 +345,373 @@ $$;
 revoke all on table security_rate_limits from anon, authenticated;
 grant execute on function public.check_rate_limit(text, integer, integer) to anon, authenticated;
 
--- RLS notes:
--- Enable row level security and add policies that fit your app.
--- Example:
--- alter table patients enable row level security;
--- create policy "Read patients" on patients for select using (auth.role() = 'authenticated');
+create or replace function public.is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.user_profiles
+    where id = auth.uid() and role = 'admin'
+  );
+$$;
+
+grant execute on function public.is_admin() to authenticated;
+
+alter table public.patients enable row level security;
+alter table public.doctors enable row level security;
+alter table public.appointments enable row level security;
+alter table public.user_profiles enable row level security;
+alter table public.doctor_applications enable row level security;
+alter table public.doctor_profiles enable row level security;
+alter table public.doctor_reviews enable row level security;
+alter table public.patient_history enable row level security;
+alter table public.doctor_availability enable row level security;
+alter table public.favorite_doctors enable row level security;
+alter table public.notifications enable row level security;
+alter table public.appointment_events enable row level security;
+alter table public.appointment_messages enable row level security;
+alter table public.appointment_files enable row level security;
+alter table public.appointment_reminders enable row level security;
+alter table public.admin_audit_logs enable row level security;
+alter table public.security_rate_limits enable row level security;
+
+drop policy if exists "patients_admin_only" on public.patients;
+create policy "patients_admin_only"
+  on public.patients
+  for all
+  using (public.is_admin())
+  with check (public.is_admin());
+
+drop policy if exists "doctors_admin_only" on public.doctors;
+create policy "doctors_admin_only"
+  on public.doctors
+  for all
+  using (public.is_admin())
+  with check (public.is_admin());
+
+drop policy if exists "appointments_read_own_or_admin" on public.appointments;
+create policy "appointments_read_own_or_admin"
+  on public.appointments
+  for select
+  using (
+    patient_user_id = auth.uid()
+    or public.is_admin()
+    or exists (
+      select 1
+      from public.doctor_profiles dp
+      where dp.id = appointments.doctor_profile_id
+        and dp.user_id = auth.uid()
+    )
+  );
+
+drop policy if exists "appointments_insert_own" on public.appointments;
+create policy "appointments_insert_own"
+  on public.appointments
+  for insert
+  with check (
+    patient_user_id = auth.uid()
+    or public.is_admin()
+  );
+
+drop policy if exists "appointments_update_own_or_admin" on public.appointments;
+create policy "appointments_update_own_or_admin"
+  on public.appointments
+  for update
+  using (
+    patient_user_id = auth.uid()
+    or public.is_admin()
+    or exists (
+      select 1
+      from public.doctor_profiles dp
+      where dp.id = appointments.doctor_profile_id
+        and dp.user_id = auth.uid()
+    )
+  )
+  with check (
+    patient_user_id = auth.uid()
+    or public.is_admin()
+    or exists (
+      select 1
+      from public.doctor_profiles dp
+      where dp.id = appointments.doctor_profile_id
+        and dp.user_id = auth.uid()
+    )
+  );
+
+drop policy if exists "user_profiles_read_own_or_admin" on public.user_profiles;
+create policy "user_profiles_read_own_or_admin"
+  on public.user_profiles
+  for select
+  using (id = auth.uid() or public.is_admin());
+
+drop policy if exists "user_profiles_insert_own_or_admin" on public.user_profiles;
+create policy "user_profiles_insert_own_or_admin"
+  on public.user_profiles
+  for insert
+  with check (id = auth.uid() or public.is_admin());
+
+drop policy if exists "user_profiles_update_own_or_admin" on public.user_profiles;
+create policy "user_profiles_update_own_or_admin"
+  on public.user_profiles
+  for update
+  using (id = auth.uid() or public.is_admin())
+  with check (id = auth.uid() or public.is_admin());
+
+drop policy if exists "doctor_applications_read_own_or_admin" on public.doctor_applications;
+create policy "doctor_applications_read_own_or_admin"
+  on public.doctor_applications
+  for select
+  using (user_id = auth.uid() or public.is_admin());
+
+drop policy if exists "doctor_applications_insert_own_or_admin" on public.doctor_applications;
+create policy "doctor_applications_insert_own_or_admin"
+  on public.doctor_applications
+  for insert
+  with check (user_id = auth.uid() or public.is_admin());
+
+drop policy if exists "doctor_applications_update_admin_only" on public.doctor_applications;
+create policy "doctor_applications_update_admin_only"
+  on public.doctor_applications
+  for update
+  using (public.is_admin())
+  with check (public.is_admin());
+
+drop policy if exists "doctor_profiles_read_verified_or_owner_or_admin" on public.doctor_profiles;
+create policy "doctor_profiles_read_verified_or_owner_or_admin"
+  on public.doctor_profiles
+  for select
+  using (verified = true or user_id = auth.uid() or public.is_admin());
+
+drop policy if exists "doctor_profiles_insert_own_or_admin" on public.doctor_profiles;
+create policy "doctor_profiles_insert_own_or_admin"
+  on public.doctor_profiles
+  for insert
+  with check (user_id = auth.uid() or public.is_admin());
+
+drop policy if exists "doctor_profiles_update_own_or_admin" on public.doctor_profiles;
+create policy "doctor_profiles_update_own_or_admin"
+  on public.doctor_profiles
+  for update
+  using (user_id = auth.uid() or public.is_admin())
+  with check (user_id = auth.uid() or public.is_admin());
+
+drop policy if exists "doctor_reviews_read_all" on public.doctor_reviews;
+create policy "doctor_reviews_read_all"
+  on public.doctor_reviews
+  for select
+  using (true);
+
+drop policy if exists "doctor_reviews_insert_own" on public.doctor_reviews;
+create policy "doctor_reviews_insert_own"
+  on public.doctor_reviews
+  for insert
+  with check (reviewer_id = auth.uid());
+
+drop policy if exists "doctor_reviews_update_own" on public.doctor_reviews;
+create policy "doctor_reviews_update_own"
+  on public.doctor_reviews
+  for update
+  using (reviewer_id = auth.uid())
+  with check (reviewer_id = auth.uid());
+
+drop policy if exists "doctor_reviews_delete_own" on public.doctor_reviews;
+create policy "doctor_reviews_delete_own"
+  on public.doctor_reviews
+  for delete
+  using (reviewer_id = auth.uid() or public.is_admin());
+
+drop policy if exists "patient_history_admin_only" on public.patient_history;
+create policy "patient_history_admin_only"
+  on public.patient_history
+  for all
+  using (public.is_admin())
+  with check (public.is_admin());
+
+drop policy if exists "doctor_availability_read_verified_or_owner_or_admin" on public.doctor_availability;
+create policy "doctor_availability_read_verified_or_owner_or_admin"
+  on public.doctor_availability
+  for select
+  using (
+    public.is_admin()
+    or exists (
+      select 1
+      from public.doctor_profiles dp
+      where dp.id = doctor_availability.doctor_profile_id
+        and (dp.verified = true or dp.user_id = auth.uid())
+    )
+  );
+
+drop policy if exists "doctor_availability_manage_owner_or_admin" on public.doctor_availability;
+create policy "doctor_availability_manage_owner_or_admin"
+  on public.doctor_availability
+  for all
+  using (
+    public.is_admin()
+    or exists (
+      select 1
+      from public.doctor_profiles dp
+      where dp.id = doctor_availability.doctor_profile_id
+        and dp.user_id = auth.uid()
+    )
+  )
+  with check (
+    public.is_admin()
+    or exists (
+      select 1
+      from public.doctor_profiles dp
+      where dp.id = doctor_availability.doctor_profile_id
+        and dp.user_id = auth.uid()
+    )
+  );
+
+drop policy if exists "favorite_doctors_manage_own" on public.favorite_doctors;
+create policy "favorite_doctors_manage_own"
+  on public.favorite_doctors
+  for all
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
+
+drop policy if exists "notifications_read_own" on public.notifications;
+create policy "notifications_read_own"
+  on public.notifications
+  for select
+  using (user_id = auth.uid() or public.is_admin());
+
+drop policy if exists "notifications_update_own" on public.notifications;
+create policy "notifications_update_own"
+  on public.notifications
+  for update
+  using (user_id = auth.uid() or public.is_admin())
+  with check (user_id = auth.uid() or public.is_admin());
+
+drop policy if exists "appointment_events_read_related_or_admin" on public.appointment_events;
+create policy "appointment_events_read_related_or_admin"
+  on public.appointment_events
+  for select
+  using (
+    public.is_admin()
+    or exists (
+      select 1
+      from public.appointments a
+      left join public.doctor_profiles dp on dp.id = a.doctor_profile_id
+      where a.id = appointment_events.appointment_id
+        and (
+          a.patient_user_id = auth.uid()
+          or dp.user_id = auth.uid()
+        )
+    )
+  );
+
+drop policy if exists "appointment_events_insert_admin_only" on public.appointment_events;
+create policy "appointment_events_insert_admin_only"
+  on public.appointment_events
+  for insert
+  with check (public.is_admin());
+
+drop policy if exists "appointment_messages_read_related_or_admin" on public.appointment_messages;
+create policy "appointment_messages_read_related_or_admin"
+  on public.appointment_messages
+  for select
+  using (
+    public.is_admin()
+    or exists (
+      select 1
+      from public.appointments a
+      left join public.doctor_profiles dp on dp.id = a.doctor_profile_id
+      where a.id = appointment_messages.appointment_id
+        and (
+          a.patient_user_id = auth.uid()
+          or dp.user_id = auth.uid()
+        )
+    )
+  );
+
+drop policy if exists "appointment_messages_insert_sender_related" on public.appointment_messages;
+create policy "appointment_messages_insert_sender_related"
+  on public.appointment_messages
+  for insert
+  with check (
+    sender_user_id = auth.uid()
+    and (
+      public.is_admin()
+      or exists (
+        select 1
+        from public.appointments a
+        left join public.doctor_profiles dp on dp.id = a.doctor_profile_id
+        where a.id = appointment_messages.appointment_id
+          and (
+            a.patient_user_id = auth.uid()
+            or dp.user_id = auth.uid()
+          )
+      )
+    )
+  );
+
+drop policy if exists "appointment_messages_delete_own_or_admin" on public.appointment_messages;
+create policy "appointment_messages_delete_own_or_admin"
+  on public.appointment_messages
+  for delete
+  using (sender_user_id = auth.uid() or public.is_admin());
+
+drop policy if exists "appointment_files_read_related_or_admin" on public.appointment_files;
+create policy "appointment_files_read_related_or_admin"
+  on public.appointment_files
+  for select
+  using (
+    public.is_admin()
+    or exists (
+      select 1
+      from public.appointments a
+      left join public.doctor_profiles dp on dp.id = a.doctor_profile_id
+      where a.id = appointment_files.appointment_id
+        and (
+          a.patient_user_id = auth.uid()
+          or dp.user_id = auth.uid()
+        )
+    )
+  );
+
+drop policy if exists "appointment_files_insert_uploader_related" on public.appointment_files;
+create policy "appointment_files_insert_uploader_related"
+  on public.appointment_files
+  for insert
+  with check (
+    uploader_user_id = auth.uid()
+    and (
+      public.is_admin()
+      or exists (
+        select 1
+        from public.appointments a
+        left join public.doctor_profiles dp on dp.id = a.doctor_profile_id
+        where a.id = appointment_files.appointment_id
+          and (
+            a.patient_user_id = auth.uid()
+            or dp.user_id = auth.uid()
+          )
+      )
+    )
+  );
+
+drop policy if exists "appointment_files_delete_own_or_admin" on public.appointment_files;
+create policy "appointment_files_delete_own_or_admin"
+  on public.appointment_files
+  for delete
+  using (uploader_user_id = auth.uid() or public.is_admin());
+
+drop policy if exists "appointment_reminders_admin_only" on public.appointment_reminders;
+create policy "appointment_reminders_admin_only"
+  on public.appointment_reminders
+  for all
+  using (public.is_admin())
+  with check (public.is_admin());
+
+drop policy if exists "admin_audit_logs_admin_only" on public.admin_audit_logs;
+create policy "admin_audit_logs_admin_only"
+  on public.admin_audit_logs
+  for all
+  using (public.is_admin())
+  with check (public.is_admin());

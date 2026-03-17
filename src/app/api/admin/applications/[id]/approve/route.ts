@@ -119,6 +119,8 @@ export async function POST(
     metadata: {
       specialty: data.specialty,
       city: data.city,
+      ip: request.headers.get("x-forwarded-for") || null,
+      userAgent: request.headers.get("user-agent") || null,
     },
   });
 

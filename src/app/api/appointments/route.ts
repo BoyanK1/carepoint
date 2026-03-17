@@ -11,6 +11,7 @@ import { getUserProfile } from "@/lib/profiles";
 import { consumeRateLimit } from "@/lib/security/rate-limit";
 import { getClientIdentifier, hasTrustedOrigin } from "@/lib/security/request-guard";
 import { getAuthUserEmail } from "@/lib/supabase/auth-users";
+import { syncAppointmentReminders } from "@/lib/reminders";
 
 const UUID_PATTERN = /^[0-9a-fA-F-]{36}$/;
 const BOOK_WINDOW_SECONDS = 10 * 60;
@@ -47,7 +48,7 @@ export async function GET() {
   const { data: appointments, error } = await admin
     .from("appointments")
     .select(
-      "id, doctor_profile_id, patient_user_id, starts_at, ends_at, status, reason, created_at, canceled_at, rescheduled_from"
+      "id, doctor_profile_id, patient_user_id, starts_at, ends_at, status, reason, created_at, canceled_at, rescheduled_from, payment_status, deposit_amount, paid_at"
     )
     .eq("patient_user_id", session.user.id)
     .order("starts_at", { ascending: false });
@@ -68,6 +69,9 @@ export async function GET() {
       created_at: string;
       canceled_at: string | null;
       rescheduled_from: string | null;
+      payment_status: string | null;
+      deposit_amount: number | null;
+      paid_at: string | null;
     }> | null) ?? [];
 
   const doctorIds = Array.from(
@@ -146,6 +150,9 @@ export async function GET() {
         createdAt: row.created_at,
         canceledAt: row.canceled_at,
         rescheduledFrom: row.rescheduled_from,
+        paymentStatus: row.payment_status,
+        depositAmount: row.deposit_amount,
+        paidAt: row.paid_at,
         doctor: doctor
           ? {
               id: doctor.id,
@@ -283,6 +290,8 @@ export async function POST(request: Request) {
       ends_at: slotEnd.toISOString(),
       status: "scheduled",
       reason: reason || null,
+      payment_status: "unpaid",
+      deposit_amount: 20,
     })
     .select("id")
     .single();
@@ -303,6 +312,13 @@ export async function POST(request: Request) {
     event_type: "booked",
     event_note: reason || null,
   });
+
+  await syncAppointmentReminders(
+    admin,
+    appointment.id,
+    slotStart.toISOString(),
+    "scheduled"
+  );
 
   const [doctorProfileResult, patientProfile, doctorEmail] = await Promise.all([
     admin

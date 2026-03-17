@@ -13,6 +13,7 @@ interface AppointmentItem {
   endsAt: string | null;
   status: string;
   reason: string | null;
+  paymentStatus?: string | null;
   doctor: {
     id: string;
     userId: string;
@@ -310,6 +311,12 @@ export default function AppointmentsPage() {
                 <div className="mt-5 grid gap-3">
                   <div className="flex flex-wrap items-center gap-2">
                     <Link
+                      href={`/appointments/${appointment.id}`}
+                      className="rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800"
+                    >
+                      {t("appointmentsDetails")}
+                    </Link>
+                    <Link
                       href={
                         appointment.doctor
                           ? `/doctors/${appointment.doctor.id}?rebook=1`
@@ -319,6 +326,11 @@ export default function AppointmentsPage() {
                     >
                       {t("appointmentsQuickRebook")}
                     </Link>
+                    {appointment.paymentStatus && appointment.paymentStatus !== "paid" && (
+                      <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-amber-700">
+                        {t("appointmentsDepositPending")}
+                      </span>
+                    )}
                   </div>
 
                   {(appointment.status === "scheduled" || appointment.status === "confirmed") && (

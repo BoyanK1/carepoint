@@ -62,7 +62,7 @@ export async function GET(
         .in("status", ["scheduled", "confirmed"]),
       admin
         .from("doctor_reviews")
-        .select("id, reviewer_id, rating, comment, created_at")
+        .select("id, reviewer_id, rating, comment, created_at, verified_visit")
         .eq("doctor_profile_id", doctorId)
         .order("created_at", { ascending: false }),
       session?.user?.id
@@ -97,6 +97,7 @@ export async function GET(
     rating: number;
     comment: string;
     created_at: string;
+    verified_visit: boolean;
   }>;
 
   const reviewerIds = Array.from(new Set(reviews.map((item) => item.reviewer_id)));
@@ -157,6 +158,7 @@ export async function GET(
         comment: item.comment,
         createdAt: item.created_at,
         reviewerName: reviewerMap.get(item.reviewer_id) || "Patient",
+        verifiedVisit: item.verified_visit,
       })),
       availability,
       availableSlots,

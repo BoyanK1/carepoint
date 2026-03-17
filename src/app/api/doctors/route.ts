@@ -29,6 +29,7 @@ interface DoctorReviewRow {
   rating: number;
   comment: string;
   created_at: string;
+  verified_visit: boolean;
 }
 
 function isMissingDoctorReviewsTable(error: { code?: string; message?: string } | null) {
@@ -80,7 +81,7 @@ export async function GET() {
         .in("id", doctorUserIds),
       admin
         .from("doctor_reviews")
-        .select("id, doctor_profile_id, reviewer_id, rating, comment, created_at")
+        .select("id, doctor_profile_id, reviewer_id, rating, comment, created_at, verified_visit")
         .in("doctor_profile_id", doctorIds)
         .order("created_at", { ascending: false }),
     ]);
@@ -228,6 +229,7 @@ export async function GET() {
           rating: review.rating,
           comment: review.comment,
           createdAt: review.created_at,
+          verifiedVisit: review.verified_visit,
           reviewerName: reviewerMap.get(review.reviewer_id)?.full_name || "Patient",
         })),
       };

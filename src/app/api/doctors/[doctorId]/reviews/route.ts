@@ -15,6 +15,7 @@ interface DoctorReviewRow {
   rating: number;
   comment: string;
   created_at: string;
+  verified_visit: boolean;
 }
 
 const UUID_PATTERN = /^[0-9a-fA-F-]{36}$/;
@@ -50,7 +51,7 @@ export async function GET(
 
   const { data, error } = await admin
     .from("doctor_reviews")
-    .select("id, reviewer_id, rating, comment, created_at")
+    .select("id, reviewer_id, rating, comment, created_at, verified_visit")
     .eq("doctor_profile_id", doctorId)
     .order("created_at", { ascending: false })
     .limit(30);
@@ -89,6 +90,7 @@ export async function GET(
       comment: review.comment,
       createdAt: review.created_at,
       reviewerName: reviewerMap.get(review.reviewer_id) || "Patient",
+      verifiedVisit: review.verified_visit,
       mine: false,
     })),
   });
@@ -153,12 +155,35 @@ export async function POST(
     );
   }
 
+  const { data: completedVisit, error: completedVisitError } = await admin
+    .from("appointments")
+    .select("id")
+    .eq("patient_user_id", session.user.id)
+    .eq("doctor_profile_id", doctorId)
+    .eq("status", "completed")
+    .order("starts_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (completedVisitError) {
+    return NextResponse.json({ error: completedVisitError.message }, { status: 500 });
+  }
+
+  if (!completedVisit?.id) {
+    return NextResponse.json(
+      { error: "Only patients with a completed visit can review this doctor." },
+      { status: 403 }
+    );
+  }
+
   const { error } = await admin.from("doctor_reviews").upsert(
     {
       doctor_profile_id: doctorId,
       reviewer_id: session.user.id,
       rating,
       comment,
+      verified_visit: true,
+      verified_appointment_id: completedVisit.id,
     },
     {
       onConflict: "doctor_profile_id,reviewer_id",

@@ -4,9 +4,12 @@ import { authOptions } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { isSlotAligned, type AvailabilityRow } from "@/lib/appointments";
 import { createManyNotifications, sendStatusEmail } from "@/lib/notifications";
+import { getUserProfile } from "@/lib/profiles";
 import { consumeRateLimit } from "@/lib/security/rate-limit";
 import { getClientIdentifier, hasTrustedOrigin } from "@/lib/security/request-guard";
 import { getAuthUserEmail } from "@/lib/supabase/auth-users";
+import { syncAppointmentReminders } from "@/lib/reminders";
+import { resolveAppointmentAccess } from "@/lib/appointment-access";
 
 const UUID_PATTERN = /^[0-9a-fA-F-]{36}$/;
 const EDIT_WINDOW_SECONDS = 10 * 60;
@@ -24,6 +27,134 @@ function getWindowEnd(day: Date, endTime: string) {
       Number(seconds)
     )
   );
+}
+
+export async function GET(
+  _request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id } = await context.params;
+  if (!UUID_PATTERN.test(id)) {
+    return NextResponse.json({ error: "Invalid appointment ID." }, { status: 400 });
+  }
+
+  const admin = getSupabaseAdmin();
+  if (!admin) {
+    return NextResponse.json(
+      { error: "Supabase admin is not configured." },
+      { status: 500 }
+    );
+  }
+
+  const profile = await getUserProfile(session.user.id);
+  const isAdmin = profile?.role === "admin";
+
+  const access = await resolveAppointmentAccess(admin, id, session.user.id, isAdmin);
+  if (!access || !access.canAccess) {
+    return NextResponse.json({ error: "Appointment not found." }, { status: 404 });
+  }
+
+  const doctorProfilePromise = access.appointment.doctor_profile_id
+    ? admin
+        .from("doctor_profiles")
+        .select("id, user_id, specialty, city")
+        .eq("id", access.appointment.doctor_profile_id)
+        .maybeSingle()
+    : Promise.resolve({ data: null, error: null });
+
+  const patientProfilePromise = access.appointment.patient_user_id
+    ? admin
+        .from("user_profiles")
+        .select("id, full_name, city, avatar_url")
+        .eq("id", access.appointment.patient_user_id)
+        .maybeSingle()
+    : Promise.resolve({ data: null, error: null });
+
+  const [doctorProfileResult, patientProfileResult] = await Promise.all([
+    doctorProfilePromise,
+    patientProfilePromise,
+  ]);
+
+  if (doctorProfileResult.error) {
+    return NextResponse.json({ error: doctorProfileResult.error.message }, { status: 500 });
+  }
+  if (patientProfileResult.error) {
+    return NextResponse.json({ error: patientProfileResult.error.message }, { status: 500 });
+  }
+
+  const doctorProfile = doctorProfileResult.data as {
+    id: string;
+    user_id: string;
+    specialty: string | null;
+    city: string | null;
+  } | null;
+
+  const doctorUserProfile = doctorProfile?.user_id
+    ? await admin
+        .from("user_profiles")
+        .select("id, full_name, city, avatar_url")
+        .eq("id", doctorProfile.user_id)
+        .maybeSingle()
+    : { data: null, error: null };
+
+  if (doctorUserProfile.error) {
+    return NextResponse.json({ error: doctorUserProfile.error.message }, { status: 500 });
+  }
+
+  const patientProfile = patientProfileResult.data as {
+    id: string;
+    full_name: string | null;
+    city: string | null;
+    avatar_url: string | null;
+  } | null;
+
+  const doctorUser = doctorUserProfile.data as {
+    id: string;
+    full_name: string | null;
+    city: string | null;
+    avatar_url: string | null;
+  } | null;
+
+  return NextResponse.json({
+    appointment: {
+      id: access.appointment.id,
+      startsAt: access.appointment.starts_at,
+      endsAt: access.appointment.ends_at,
+      status: access.appointment.status,
+      reason: access.appointment.reason,
+      paymentStatus: access.appointment.payment_status,
+      depositAmount: access.appointment.deposit_amount,
+      paidAt: access.appointment.paid_at,
+      patient: access.appointment.patient_user_id
+        ? {
+            id: access.appointment.patient_user_id,
+            name: patientProfile?.full_name || "Patient",
+            city: patientProfile?.city || null,
+            avatarUrl: patientProfile?.avatar_url || null,
+          }
+        : null,
+      doctor: doctorProfile
+        ? {
+            id: doctorProfile.id,
+            userId: doctorProfile.user_id,
+            name: doctorUser?.full_name || "Doctor",
+            specialty: doctorProfile.specialty,
+            city: doctorProfile.city || doctorUser?.city || null,
+            avatarUrl: doctorUser?.avatar_url || null,
+          }
+        : null,
+      access: {
+        isPatient: access.isPatient,
+        isDoctor: access.isDoctor,
+        isAdmin,
+      },
+    },
+  });
 }
 
 export async function PATCH(
@@ -73,7 +204,7 @@ export async function PATCH(
   const { data: appointment, error: appointmentError } = await admin
     .from("appointments")
     .select(
-      "id, doctor_profile_id, patient_user_id, starts_at, ends_at, status, reason"
+      "id, doctor_profile_id, patient_user_id, starts_at, ends_at, status, reason, payment_status"
     )
     .eq("id", id)
     .eq("patient_user_id", session.user.id)
@@ -127,6 +258,8 @@ export async function PATCH(
         status: "cancelled",
         canceled_at: new Date().toISOString(),
         canceled_by: session.user.id,
+        payment_status:
+          appointment.payment_status === "paid" ? "refunded" : appointment.payment_status,
       })
       .eq("id", id);
 
@@ -140,6 +273,8 @@ export async function PATCH(
       event_type: "cancelled",
       event_note: "Cancelled by patient",
     });
+
+    await syncAppointmentReminders(admin, id, appointment.starts_at, "cancelled");
 
     const dateLabel = new Date(appointment.starts_at).toLocaleString("en-US", {
       dateStyle: "medium",
@@ -255,7 +390,7 @@ export async function PATCH(
     .update({
       starts_at: nextStart.toISOString(),
       ends_at: nextEnd.toISOString(),
-      status: "scheduled",
+      status: appointment.payment_status === "paid" ? "confirmed" : "scheduled",
       canceled_at: null,
       canceled_by: null,
     })
@@ -277,6 +412,13 @@ export async function PATCH(
     event_type: "rescheduled",
     event_note: `Rescheduled from ${appointment.starts_at} to ${nextStart.toISOString()}`,
   });
+
+  await syncAppointmentReminders(
+    admin,
+    id,
+    nextStart.toISOString(),
+    appointment.payment_status === "paid" ? "confirmed" : "scheduled"
+  );
 
   const dateLabel = nextStart.toLocaleString("en-US", {
     dateStyle: "medium",

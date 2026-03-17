@@ -8,10 +8,12 @@ const protectedPaths = [
   "/profile",
   "/admin",
   "/doctor/apply",
+  "/doctor/analytics",
   "/appointments",
   "/history",
   "/notifications",
   "/api/admin",
+  "/api/doctor/analytics",
   "/api/appointments",
   "/api/notifications",
 ];

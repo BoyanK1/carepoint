@@ -40,6 +40,7 @@ export function DashboardClient({
   const [cityError, setCityError] = useState<string | null>(null);
 
   const canApplyDoctor = role !== "doctor";
+  const canSeeDoctorAnalytics = role === "doctor" || role === "admin";
 
   async function saveCity() {
     setCityStatus("saving");
@@ -155,6 +156,14 @@ export function DashboardClient({
             >
               {t("dashboardAppointmentHistory")}
             </Link>
+            {canSeeDoctorAnalytics && (
+              <Link
+                href="/doctor/analytics"
+                className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+              >
+                {t("dashboardDoctorAnalytics")}
+              </Link>
+            )}
           </div>
         </div>
       </section>

@@ -1,72 +1,151 @@
 # CarePoint
 
-CarePoint is a Next.js (App Router) app with NextAuth, Supabase, and Resend for feedback email.
+CarePoint is a Next.js (App Router) + TypeScript app for doctor discovery and appointment management, with:
+- NextAuth authentication (GitHub + Supabase email/password)
+- Supabase Postgres + Storage + Auth
+- MFA for admin actions
+- Resend email delivery
+- Feedback email template via React Email
 
-## Quick start
+## 1) Run locally
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open http://localhost:3000.
+Open `http://localhost:3000`.
 
-## Environment variables
+## 2) Environment variables
 
-Create `.env.local` using `.env.example` as a template.
+Copy `.env.example` to `.env.local` and fill all required values.
 
-## Supabase setup
+Required:
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXTAUTH_URL`
+- `NEXTAUTH_SECRET`
+- `RESEND_API_KEY`
+- `FEEDBACK_TO_EMAIL`
 
-1. Create a Supabase project and copy the project URL + anon key.
-2. Paste them into `.env.local` as `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
-3. In the SQL editor, run `supabase/schema.sql` to create tables.
-4. Create two storage buckets:
+Recommended / feature-specific:
+- `SUPABASE_SERVICE_ROLE_KEY` (required for admin/server routes)
+- `GITHUB_ID`, `GITHUB_SECRET` (if you keep GitHub OAuth enabled)
+- `REMINDER_CRON_SECRET` (protects reminder cron endpoint)
+
+## 3) Supabase setup
+
+1. Create a Supabase project.
+2. In SQL editor, run `supabase/schema.sql`.
+3. In Storage, create buckets:
    - `avatars` (public)
-   - `doctor-licenses` (private recommended)
-5. Optional: add RLS policies (see `supabase/schema.sql` notes).
+   - `doctor-licenses` (private)
+   - `appointment-files` (private)
+4. In Authentication:
+   - Enable Email provider.
+   - Configure redirect URLs for local + Vercel domains.
 
-## NextAuth setup
+## 4) Authentication setup
 
-1. Create a GitHub OAuth app and set the callback URL to:
+### Email/password
+- Sign-up route: `POST /api/auth/signup` (Supabase Auth `signUp`)
+- Sign-in route: NextAuth Credentials provider (Supabase `signInWithPassword`)
+
+### GitHub OAuth (optional if you removed UI button)
+1. Create a GitHub OAuth app.
+2. Callback URL:
    - `http://localhost:3000/api/auth/callback/github`
-2. Add `GITHUB_ID` and `GITHUB_SECRET` to `.env.local`.
-3. Set `NEXTAUTH_URL` and `NEXTAUTH_SECRET`.
-   - Generate a secret with `openssl rand -base64 32`.
+3. Add `GITHUB_ID` / `GITHUB_SECRET`.
 
-## Supabase email/password auth
-
-- Sign-up uses `/api/auth/signup` which calls Supabase Auth `signUp`.
-- Sign-in uses NextAuth Credentials provider and Supabase `signInWithPassword`.
-
-## Admin panel and doctor verification
-
-- Admins review doctor applications at `/admin`.
-- Doctor applicants upload a license at `/doctor/apply`.
-- Admin role is stored in `user_profiles.role` (`patient`, `doctor_pending`, `doctor`, or `admin`).
-  - You can promote a user to admin with:
-    `update user_profiles set role = 'admin' where email = '<email>';`
-- If `doctor-licenses` is private, the admin panel uses signed URLs for license access.
-
-## MFA (email code)
-
-- Admin routes require a one-time email code at `/mfa`.
-- Codes are sent with Resend.
-
-## Resend feedback email
-
-1. Create a Resend API key and add `RESEND_API_KEY` to `.env.local`.
-2. Set `FEEDBACK_TO_EMAIL` to the inbox that should receive feedback.
-3. Optional: update the `from` address in `src/app/api/feedback/route.ts` once your domain is verified.
-
-## Push to GitHub
+### NextAuth values
+- `NEXTAUTH_URL` local: `http://localhost:3000`
+- `NEXTAUTH_SECRET`: generate with:
 
 ```bash
-git status
-git add .
-git commit -m "Initial CarePoint app"
-git branch -M main
-git remote add origin <your-repo-url>
-git push -u origin main
+openssl rand -base64 32
 ```
 
-That’s it. If you want, I can now hook doctor search + appointments to real DB data.
+## 5) Admin + MFA
+
+- Admin page: `/admin`
+- Admin actions require MFA verification via `/mfa`.
+- MFA code emails are sent through Resend.
+
+Promote user to admin (SQL):
+
+```sql
+update user_profiles
+set role = 'admin'
+where id = '<auth_user_uuid>';
+```
+
+## 6) Feedback email
+
+- UI page: `/feedback`
+- API route: `POST /api/feedback`
+- Template: `src/emails/FeedbackEmail.tsx`
+
+## 7) Reminders cron
+
+Endpoint:
+- `POST /api/reminders/run`
+
+Auth:
+- header `x-cron-secret: <REMINDER_CRON_SECRET>`
+  or
+- header `Authorization: Bearer <REMINDER_CRON_SECRET>`
+
+Use a Vercel Cron Job (or any scheduler) to call it every 5-15 minutes.
+
+## 8) Data collection protocols (for diploma documentation)
+
+If you collect personal data (names, emails, cities, appointment details), document these minimum protocols:
+
+1. Lawful basis + consent:
+- Explain why data is collected (appointment management, verification, notifications).
+- Show clear consent text for signup/feedback forms.
+
+2. Privacy notice:
+- What data is collected.
+- Why.
+- How long it is stored.
+- Who can access it (patient/doctor/admin roles).
+
+3. Access control:
+- Enforce least privilege with RLS + role checks.
+- Admin-only operations protected with MFA.
+
+4. Data minimization:
+- Collect only needed fields.
+- Avoid storing plaintext sensitive metadata that is not required.
+
+5. Encryption and secure transport:
+- HTTPS everywhere (Vercel provides TLS).
+- Use secure, httpOnly cookies for auth/MFA tokens.
+
+6. Retention policy:
+- Define when old records/logs are deleted or anonymized.
+- Keep audit logs for admin actions.
+
+7. Incident response (basic):
+- Define who is informed and what steps are taken if unauthorized access occurs.
+
+8. User rights handling:
+- Add process for account/data deletion request in your demo documentation.
+
+For an EU/Bulgaria school project, map these to GDPR principles (lawfulness, purpose limitation, minimization, integrity/confidentiality, storage limitation, accountability).
+
+## 9) Push to GitHub
+
+```bash
+git add .
+git commit -m "CarePoint features and security updates"
+git push origin main
+```
+
+## 10) Deploy to Vercel
+
+1. Import repository in Vercel.
+2. Add the same environment variables from `.env.local` into Vercel Project Settings.
+3. Deploy.
+4. After deploy, set `NEXTAUTH_URL` in Vercel to your production URL and redeploy.
