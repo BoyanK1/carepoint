@@ -65,6 +65,7 @@ export default function AppointmentsPage() {
   const [filter, setFilter] = useState<(typeof filters)[number]>("all");
   const [reschedule, setReschedule] = useState<Record<string, string>>({});
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [currentTime, setCurrentTime] = useState(0);
 
   const getStatusLabel = useCallback(
     (value: string) => {
@@ -113,6 +114,13 @@ export default function AppointmentsPage() {
       void loadAppointments();
     }
   }, [status, router, loadAppointments]);
+
+  useEffect(() => {
+    const tick = () => setCurrentTime(Date.now());
+    tick();
+    const intervalId = window.setInterval(tick, 60_000);
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   const filtered = useMemo(() => {
     if (filter === "all") {
@@ -263,6 +271,11 @@ export default function AppointmentsPage() {
         <section className="grid gap-4 lg:gap-5">
           {filtered.map((appointment) => {
             const badgeClass = statusClasses[appointment.status] ?? statusClasses.scheduled;
+            const isPastAppointment =
+              currentTime > 0 && new Date(appointment.startsAt).getTime() <= currentTime;
+            const showManageControls =
+              (appointment.status === "scheduled" || appointment.status === "confirmed") &&
+              !isPastAppointment;
             return (
               <article
                 key={appointment.id}
@@ -333,7 +346,7 @@ export default function AppointmentsPage() {
                     )}
                   </div>
 
-                  {(appointment.status === "scheduled" || appointment.status === "confirmed") && (
+                  {showManageControls && (
                     <div className="grid gap-2 rounded-2xl border border-slate-200 bg-slate-50/80 p-3 sm:grid-cols-[1fr_auto] sm:items-end">
                       <label className="grid gap-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
                         {t("appointmentsPickNewDateTime")}
@@ -372,6 +385,12 @@ export default function AppointmentsPage() {
                       </div>
                     </div>
                   )}
+                  {!showManageControls &&
+                    (appointment.status === "scheduled" || appointment.status === "confirmed") && (
+                      <p className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600">
+                        {t("appointmentsPastNoReschedule")}
+                      </p>
+                    )}
                 </div>
               </article>
             );

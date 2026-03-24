@@ -235,7 +235,9 @@ export const translations = {
     appointmentsReschedule: "Reschedule",
     appointmentsUpdateError: "Could not update appointment.",
     appointmentsDetails: "Open details",
-    appointmentsDepositPending: "Deposit pending",
+    appointmentsDepositPending: "Payment required",
+    appointmentsPastNoReschedule:
+      "This appointment is in the past, so rescheduling is disabled.",
     appointmentDetailLoading: "Loading appointment...",
     appointmentDetailLoadError: "Could not load this appointment.",
     appointmentDetailBadge: "Appointment details",
@@ -616,7 +618,9 @@ export const translations = {
     appointmentsReschedule: "Пренасрочи",
     appointmentsUpdateError: "Не успяхме да обновим часа.",
     appointmentsDetails: "Отвори детайли",
-    appointmentsDepositPending: "Депозитът чака плащане",
+    appointmentsDepositPending: "Изисква се плащане",
+    appointmentsPastNoReschedule:
+      "Този час е в миналото, затова пренасрочването е изключено.",
     appointmentDetailLoading: "Зареждаме часа...",
     appointmentDetailLoadError: "Не успяхме да заредим този час.",
     appointmentDetailBadge: "Детайли за часа",

@@ -122,6 +122,7 @@ export default function AppointmentDetailPage() {
     null
   );
   const [rescheduleAt, setRescheduleAt] = useState("");
+  const [currentTime, setCurrentTime] = useState(0);
 
   const getStatusLabel = useCallback(
     (value: string) => {
@@ -208,12 +209,23 @@ export default function AppointmentDetailPage() {
     }
   }, [status, router, appointmentId, loadAll]);
 
+  useEffect(() => {
+    const tick = () => setCurrentTime(Date.now());
+    tick();
+    const intervalId = window.setInterval(tick, 60_000);
+    return () => window.clearInterval(intervalId);
+  }, []);
+
   const badgeClass = statusClasses[appointment?.status ?? "scheduled"] ?? statusClasses.scheduled;
+  const isPastAppointment = appointment
+    ? currentTime > 0 && new Date(appointment.startsAt).getTime() <= currentTime
+    : false;
   const canEdit = Boolean(
     appointment?.access.isPatient &&
       appointment &&
       ["scheduled", "confirmed"].includes(appointment.status)
   );
+  const canManageAppointment = canEdit && !isPastAppointment;
   const canPay = Boolean(
     appointment?.access.isPatient &&
       appointment &&
@@ -521,7 +533,7 @@ export default function AppointmentDetailPage() {
         </div>
 
         <div className="space-y-6">
-          {canEdit && (
+          {canManageAppointment && (
             <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
               <h2 className="text-lg font-semibold text-slate-900">{t("appointmentDetailManage")}</h2>
               <label className="mt-4 grid gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -555,6 +567,14 @@ export default function AppointmentDetailPage() {
               </div>
             </article>
           )}
+          {!canManageAppointment &&
+            canEdit && (
+              <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                <p className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600">
+                  {t("appointmentsPastNoReschedule")}
+                </p>
+              </article>
+            )}
 
           <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
             <div className="flex items-center justify-between gap-3">

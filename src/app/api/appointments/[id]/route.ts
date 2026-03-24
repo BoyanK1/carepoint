@@ -328,6 +328,14 @@ export async function PATCH(
       { status: 400 }
     );
   }
+
+  if (new Date(appointment.starts_at).getTime() <= Date.now()) {
+    return NextResponse.json(
+      { error: "Past appointments cannot be rescheduled." },
+      { status: 400 }
+    );
+  }
+
   const nextStart = new Date(startsAt);
   if (Number.isNaN(nextStart.getTime()) || nextStart.getTime() < Date.now() + 60_000) {
     return NextResponse.json({ error: "Invalid new appointment time." }, { status: 400 });
