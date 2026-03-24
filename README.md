@@ -37,6 +37,7 @@ Recommended / feature-specific:
 
 1. Create a Supabase project.
 2. In SQL editor, run `supabase/schema.sql`.
+3. (Optional for demo) run `supabase/seed.sql` to generate demo doctors, appointments, reviews, favorites, and notifications.
 3. In Storage, create buckets:
    - `avatars` (public)
    - `doctor-licenses` (private)
@@ -44,6 +45,9 @@ Recommended / feature-specific:
 4. In Authentication:
    - Enable Email provider.
    - Configure redirect URLs for local + Vercel domains.
+
+### Demo seed tip
+- For best visible demo data, create at least 3 auth users first (1 patient + 2 doctor accounts), then run `supabase/seed.sql`.
 
 ## 4) Authentication setup
 
