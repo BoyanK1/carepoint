@@ -161,7 +161,9 @@ export function NavbarClient({ user }: NavbarClientProps) {
                 className="flex max-w-[13.5rem] shrink-0 items-center gap-2 overflow-hidden rounded-full border border-slate-200 bg-white px-2.5 py-1.5 shadow-sm transition hover:border-slate-300"
                 title={user.name || user.email || t("navAccount")}
               >
-                <Avatar name={user.name} src={user.avatarUrl} size={28} />
+                <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-50">
+                  <Avatar name={user.name} src={user.avatarUrl} size={28} />
+                </span>
                 <span className="max-w-[9rem] truncate text-sm font-medium text-slate-700">
                   {user.name || user.email || t("navAccount")}
                 </span>
