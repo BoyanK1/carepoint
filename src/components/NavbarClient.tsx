@@ -14,13 +14,13 @@ interface NavbarUser {
 
 interface NavbarClientProps {
   user: NavbarUser | null;
+  initialUnreadCount?: number;
 }
 
-export function NavbarClient({ user }: NavbarClientProps) {
+export function NavbarClient({ user, initialUnreadCount = 0 }: NavbarClientProps) {
   const [scrolled, setScrolled] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
   const { t } = useLanguage();
-  const effectiveUnreadCount = user ? unreadCount : 0;
+  const effectiveUnreadCount = user ? initialUnreadCount : 0;
   const canApplyDoctor = !user || user.role === "patient";
 
   const roleLabel =
@@ -38,43 +38,9 @@ export function NavbarClient({ user }: NavbarClientProps) {
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 12);
     handleScroll();
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
-  useEffect(() => {
-    if (!user) {
-      return;
-    }
-
-    const abort = new AbortController();
-    const loadUnreadCount = async () => {
-      try {
-        const response = await fetch("/api/notifications?summary=1", {
-          cache: "no-store",
-          signal: abort.signal,
-        });
-        if (!response.ok) {
-          return;
-        }
-
-        const payload = (await response.json()) as {
-          unreadCount?: number;
-          notifications?: Array<{ is_read?: boolean }>;
-        };
-        const unread =
-          typeof payload.unreadCount === "number"
-            ? payload.unreadCount
-            : (payload.notifications ?? []).filter((item) => !item.is_read).length;
-        setUnreadCount(unread);
-      } catch {
-        // Keep navigation stable if notifications API fails.
-      }
-    };
-
-    void loadUnreadCount();
-    return () => abort.abort();
-  }, [user]);
 
   return (
     <header

@@ -67,3 +67,20 @@ export async function sendStatusEmail(input: EmailInput) {
     text: input.text,
   });
 }
+
+export async function getUnreadNotificationCount(
+  admin: SupabaseLikeAdmin,
+  userId: string
+) {
+  const { count, error } = await admin
+    .from("notifications")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("is_read", false);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return count ?? 0;
+}

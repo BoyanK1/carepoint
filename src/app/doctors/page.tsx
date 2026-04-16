@@ -48,6 +48,7 @@ export default function DoctorsPage() {
   const { data: session } = useSession();
   const router = useRouter();
   const { t, lang } = useLanguage();
+  const locale = lang === "bg" ? "bg-BG" : "en-US";
 
   const [query, setQuery] = useState("");
   const [specialty, setSpecialty] = useState("");
@@ -84,24 +85,36 @@ export default function DoctorsPage() {
     void loadDoctors();
   }, [loadDoctors]);
 
+  const preparedDoctors = useMemo(
+    () =>
+      doctors.map((doctor) => ({
+        ...doctor,
+        normalizedName: normalize(doctor.name),
+        normalizedSpecialty: normalize(doctor.specialty),
+        normalizedCity: normalize(doctor.city),
+        soonestTimestamp: doctor.soonestAvailableAt
+          ? new Date(doctor.soonestAvailableAt).getTime()
+          : null,
+      })),
+    [doctors]
+  );
+
   const filtered = useMemo(() => {
     const search = normalize(query);
     const specialtyFilter = normalize(specialty);
     const cityFilter = normalize(city);
+    const emergencyCutoff = Date.now() + 24 * 60 * 60 * 1000;
 
-    const result = doctors.filter((doctor) => {
+    const result = preparedDoctors.filter((doctor) => {
       const matchesSearch =
-        normalize(doctor.name).includes(search) ||
-        normalize(doctor.specialty).includes(search);
+        doctor.normalizedName.includes(search) ||
+        doctor.normalizedSpecialty.includes(search);
       const matchesSpecialty = specialtyFilter
-        ? normalize(doctor.specialty).includes(specialtyFilter)
+        ? doctor.normalizedSpecialty.includes(specialtyFilter)
         : true;
-      const matchesCity = cityFilter ? normalize(doctor.city).includes(cityFilter) : true;
+      const matchesCity = cityFilter ? doctor.normalizedCity.includes(cityFilter) : true;
       const hasEmergencySlot =
-        !doctor.soonestAvailableAt ||
-        new Date(doctor.soonestAvailableAt).getTime() > Date.now() + 24 * 60 * 60 * 1000
-          ? false
-          : true;
+        doctor.soonestTimestamp !== null && doctor.soonestTimestamp <= emergencyCutoff;
       const matchesEmergency = emergencyOnly ? hasEmergencySlot : true;
       return matchesSearch && matchesSpecialty && matchesCity && matchesEmergency;
     });
@@ -114,20 +127,17 @@ export default function DoctorsPage() {
         return cityScore(a.city, city) - cityScore(b.city, city);
       }
       if (sort === "soonest") {
-        if (!a.soonestAvailableAt) {
+        if (a.soonestTimestamp === null) {
           return 1;
         }
-        if (!b.soonestAvailableAt) {
+        if (b.soonestTimestamp === null) {
           return -1;
         }
-        return (
-          new Date(a.soonestAvailableAt).getTime() -
-          new Date(b.soonestAvailableAt).getTime()
-        );
+        return a.soonestTimestamp - b.soonestTimestamp;
       }
       return a.name.localeCompare(b.name);
     });
-  }, [city, doctors, emergencyOnly, query, sort, specialty]);
+  }, [city, emergencyOnly, preparedDoctors, query, sort, specialty]);
 
   async function toggleFavorite(doctor: Doctor) {
     if (!session) {
@@ -258,9 +268,7 @@ export default function DoctorsPage() {
                       {doctor.soonestAvailableAt
                         ? t("doctorsSoonestSlot").replace(
                             "{date}",
-                            new Date(doctor.soonestAvailableAt).toLocaleString(
-                              lang === "bg" ? "bg-BG" : "en-US"
-                            )
+                            new Date(doctor.soonestAvailableAt).toLocaleString(locale)
                           )
                         : t("doctorsNoOpenSlots")}
                     </p>

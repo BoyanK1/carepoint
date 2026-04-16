@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export interface UserProfile {
@@ -9,7 +10,7 @@ export interface UserProfile {
   email_hash?: string | null;
 }
 
-export async function getUserProfile(userId: string) {
+export const getUserProfile = cache(async (userId: string) => {
   const admin = getSupabaseAdmin();
   if (!admin) {
     return null;
@@ -22,4 +23,4 @@ export async function getUserProfile(userId: string) {
     .single();
 
   return (data as UserProfile | null) ?? null;
-}
+});
