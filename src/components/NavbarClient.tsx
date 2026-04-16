@@ -21,6 +21,7 @@ export function NavbarClient({ user }: NavbarClientProps) {
   const [unreadCount, setUnreadCount] = useState(0);
   const { t } = useLanguage();
   const effectiveUnreadCount = user ? unreadCount : 0;
+  const canApplyDoctor = !user || user.role === "patient";
 
   const roleLabel =
     user?.role === "doctor"
@@ -105,7 +106,7 @@ export function NavbarClient({ user }: NavbarClientProps) {
                 >
                   {t("navDoctors")}
                 </Link>
-                {user?.role !== "doctor" && (
+                {canApplyDoctor && (
                   <Link
                     href="/doctor/apply"
                     className="rounded-full px-3 py-1 whitespace-nowrap transition hover:bg-slate-100 hover:text-slate-900"
@@ -158,16 +159,14 @@ export function NavbarClient({ user }: NavbarClientProps) {
             {user ? (
               <Link
                 href="/profile"
-                className="flex max-w-[13.5rem] shrink-0 items-center gap-2 overflow-hidden rounded-full border border-slate-200 bg-white px-2.5 py-1.5 shadow-sm transition hover:border-slate-300"
+                className="flex max-w-[14rem] shrink-0 items-center gap-2 overflow-hidden rounded-full border border-slate-200/90 bg-white/95 py-1.5 pl-1.5 pr-2.5 shadow-sm transition hover:border-slate-300"
                 title={user.name || user.email || t("navAccount")}
               >
-                <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-50">
-                  <Avatar name={user.name} src={user.avatarUrl} size={28} />
-                </span>
+                <Avatar name={user.name} src={user.avatarUrl} size={32} />
                 <span className="max-w-[9rem] truncate text-sm font-medium text-slate-700">
                   {user.name || user.email || t("navAccount")}
                 </span>
-                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+                <span className="hidden rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600 sm:inline-flex">
                   {roleLabel}
                 </span>
               </Link>
@@ -191,7 +190,7 @@ export function NavbarClient({ user }: NavbarClientProps) {
               >
                 {t("navDoctors")}
               </Link>
-              {user?.role !== "doctor" && (
+              {canApplyDoctor && (
                 <Link
                   href="/doctor/apply"
                   className="rounded-full px-3 py-1.5 whitespace-nowrap transition hover:bg-slate-100 hover:text-slate-900"

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Avatar } from "@/components/Avatar";
@@ -13,9 +13,6 @@ interface AppointmentDetail {
   endsAt: string | null;
   status: string;
   reason: string | null;
-  paymentStatus: string | null;
-  depositAmount: number | null;
-  paidAt: string | null;
   patient: {
     id: string;
     name: string;
@@ -118,9 +115,7 @@ export default function AppointmentDetailPage() {
   const [messageText, setMessageText] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
-  const [pendingAction, setPendingAction] = useState<"cancel" | "reschedule" | "payment" | null>(
-    null
-  );
+  const [pendingAction, setPendingAction] = useState<"cancel" | "reschedule" | null>(null);
   const [rescheduleAt, setRescheduleAt] = useState("");
   const [currentTime, setCurrentTime] = useState(0);
 
@@ -226,25 +221,6 @@ export default function AppointmentDetailPage() {
       ["scheduled", "confirmed"].includes(appointment.status)
   );
   const canManageAppointment = canEdit && !isPastAppointment;
-  const canPay = Boolean(
-    appointment?.access.isPatient &&
-      appointment &&
-      ["scheduled", "confirmed"].includes(appointment.status) &&
-      appointment.paymentStatus !== "paid"
-  );
-
-  const paymentLabel = useMemo(() => {
-    if (!appointment?.paymentStatus) {
-      return t("appointmentDetailPaymentUnpaid");
-    }
-    if (appointment.paymentStatus === "paid") {
-      return t("appointmentDetailPaymentPaid");
-    }
-    if (appointment.paymentStatus === "refunded") {
-      return t("appointmentDetailPaymentRefunded");
-    }
-    return appointment.paymentStatus;
-  }, [appointment?.paymentStatus, t]);
 
   async function handleCancel() {
     if (!appointment) {
@@ -288,27 +264,6 @@ export default function AppointmentDetailPage() {
     const payload = await response.json().catch(() => null);
     if (!response.ok) {
       setError(payload?.error || t("appointmentsUpdateError"));
-      setPendingAction(null);
-      return;
-    }
-    setPendingAction(null);
-    await loadAll();
-  }
-
-  async function handlePayDeposit() {
-    if (!appointment) {
-      return;
-    }
-
-    setPendingAction("payment");
-    setError(null);
-
-    const response = await fetch(`/api/appointments/${appointment.id}/payment`, {
-      method: "POST",
-    });
-    const payload = await response.json().catch(() => null);
-    if (!response.ok) {
-      setError(payload?.error || t("appointmentDetailPaymentError"));
       setPendingAction(null);
       return;
     }
@@ -452,12 +407,6 @@ export default function AppointmentDetailPage() {
               </div>
               <div>
                 <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  {t("appointmentDetailPaymentStatus")}
-                </dt>
-                <dd className="mt-1 font-medium text-slate-900">{paymentLabel}</dd>
-              </div>
-              <div className="sm:col-span-2">
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                   {t("appointmentDetailReason")}
                 </dt>
                 <dd className="mt-1 text-slate-700">{appointment.reason || t("appointmentsNoNote")}</dd>
@@ -471,21 +420,6 @@ export default function AppointmentDetailPage() {
               >
                 {t("appointmentDetailAddCalendar")}
               </Link>
-              {canPay && (
-                <button
-                  type="button"
-                  onClick={() => void handlePayDeposit()}
-                  disabled={pendingAction === "payment"}
-                  className="rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {pendingAction === "payment"
-                    ? t("appointmentDetailPaying")
-                    : t("appointmentDetailPayDeposit").replace(
-                        "{amount}",
-                        String(appointment.depositAmount ?? 20)
-                      )}
-                </button>
-              )}
             </div>
           </article>
 

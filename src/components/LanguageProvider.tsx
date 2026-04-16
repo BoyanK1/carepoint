@@ -38,7 +38,8 @@ function readCookieLang() {
 function persistLanguage(lang: Language) {
   if (typeof document !== "undefined") {
     document.documentElement.lang = lang;
-    document.cookie = `${COOKIE_NAME}=${lang}; path=/; max-age=31536000`;
+    const secureFlag = window.location.protocol === "https:" ? "; secure" : "";
+    document.cookie = `${COOKIE_NAME}=${lang}; path=/; max-age=31536000; samesite=lax${secureFlag}`;
   }
 
   if (typeof window !== "undefined") {
@@ -46,17 +47,23 @@ function persistLanguage(lang: Language) {
   }
 }
 
-export function LanguageProvider({ children }: { children: React.ReactNode }) {
+export function LanguageProvider({
+  children,
+  initialLang = "en",
+}: {
+  children: React.ReactNode;
+  initialLang?: Language;
+}) {
   const [lang, setLangState] = useState<Language>(() => {
     if (typeof window === "undefined") {
-      return "en";
+      return initialLang;
     }
     const stored = localStorage.getItem(COOKIE_NAME);
     if (stored === "en" || stored === "bg") {
       return stored;
     }
     const cookieLang = readCookieLang();
-    return cookieLang ?? "en";
+    return cookieLang ?? initialLang;
   });
 
   useEffect(() => {

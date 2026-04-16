@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { useMemo, useState } from "react";
 
 interface AvatarProps {
@@ -26,7 +27,7 @@ export function Avatar({ name, src, size = 36 }: AvatarProps) {
 
   return (
     <div
-      className="relative flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-200 text-xs font-semibold text-slate-700"
+      className="relative flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-200 text-xs font-semibold text-slate-700 ring-1 ring-slate-200/90 shadow-inner"
       style={{
         width: size,
         height: size,
@@ -37,12 +38,12 @@ export function Avatar({ name, src, size = 36 }: AvatarProps) {
       }}
     >
       {showImage ? (
-        <img
-          src={src ?? undefined}
+        <Image
+          src={src as string}
           alt={name ?? "Avatar"}
-          className="block h-full w-full object-cover"
-          width={size}
-          height={size}
+          fill
+          sizes={`${size}px`}
+          className="object-cover"
           onError={() => setImageFailed(true)}
         />
       ) : (

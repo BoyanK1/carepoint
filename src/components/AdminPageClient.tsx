@@ -9,7 +9,7 @@ export interface AdminAuditLog {
   action: string;
   created_at: string;
   admin_name: string;
-  target_name: string;
+  target_name: string | null;
 }
 
 interface AdminPageClientProps {
@@ -23,7 +23,8 @@ export function AdminPageClient({
   auditLogs,
   missingAdminKey,
 }: AdminPageClientProps) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
+  const locale = lang === "bg" ? "bg-BG" : "en-US";
   const [actionFilter, setActionFilter] = useState<"all" | "approved" | "rejected">("all");
   const [search, setSearch] = useState("");
   const [fromDate, setFromDate] = useState("");
@@ -35,7 +36,7 @@ export function AdminPageClient({
       const matchesSearch =
         !normalizedSearch ||
         item.admin_name.toLowerCase().includes(normalizedSearch) ||
-        item.target_name.toLowerCase().includes(normalizedSearch);
+        (item.target_name ?? "").toLowerCase().includes(normalizedSearch);
 
       const isApproved = item.action === "application_approved";
       const isRejected = item.action === "application_rejected";
@@ -141,8 +142,8 @@ export function AdminPageClient({
                     : t("adminAuditRejected")) + " " + t("adminAuditBy")} {item.admin_name}
                 </p>
                 <p className="text-slate-600">
-                  {t("adminAuditApplicant")} {item.target_name} ·{" "}
-                  {new Date(item.created_at).toLocaleString()}
+                  {t("adminAuditApplicant")} {item.target_name || t("commonNotAvailable")} ·{" "}
+                  {new Date(item.created_at).toLocaleString(locale)}
                 </p>
               </div>
             ))}

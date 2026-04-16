@@ -13,7 +13,6 @@ interface AppointmentItem {
   endsAt: string | null;
   status: string;
   reason: string | null;
-  paymentStatus?: string | null;
   doctor: {
     id: string;
     userId: string;
@@ -339,11 +338,6 @@ export default function AppointmentsPage() {
                     >
                       {t("appointmentsQuickRebook")}
                     </Link>
-                    {appointment.paymentStatus && appointment.paymentStatus !== "paid" && (
-                      <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-amber-700">
-                        {t("appointmentsDepositPending")}
-                      </span>
-                    )}
                   </div>
 
                   {showManageControls && (

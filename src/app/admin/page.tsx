@@ -103,7 +103,7 @@ export default async function AdminPage() {
     admin_name: actorMap.get(item.admin_user_id) || item.admin_user_id,
     target_name: item.target_user_id
       ? actorMap.get(item.target_user_id) || item.target_user_id
-      : "N/A",
+      : null,
   }));
 
   return (

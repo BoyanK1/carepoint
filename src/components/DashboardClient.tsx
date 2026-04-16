@@ -39,7 +39,7 @@ export function DashboardClient({
   const [cityStatus, setCityStatus] = useState<"idle" | "saving" | "ok" | "error">("idle");
   const [cityError, setCityError] = useState<string | null>(null);
 
-  const canApplyDoctor = role !== "doctor";
+  const canApplyDoctor = !role || role === "patient";
   const canSeeDoctorAnalytics = role === "doctor" || role === "admin";
 
   async function saveCity() {

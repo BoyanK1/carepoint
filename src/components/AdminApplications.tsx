@@ -82,12 +82,14 @@ export function AdminApplications({ applications }: AdminApplicationsProps) {
             </div>
             <div className="flex gap-2">
               <button
+                type="button"
                 onClick={() => updateStatus(application.id, "approve")}
                 className="rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-500"
               >
                 {t("adminApprove")}
               </button>
               <button
+                type="button"
                 onClick={() => updateStatus(application.id, "reject")}
                 className="rounded-full border border-rose-200 px-4 py-2 text-xs font-semibold text-rose-600 transition hover:border-rose-300"
               >

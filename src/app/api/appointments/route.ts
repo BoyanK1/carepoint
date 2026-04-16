@@ -291,7 +291,7 @@ export async function POST(request: Request) {
       status: "scheduled",
       reason: reason || null,
       payment_status: "unpaid",
-      deposit_amount: 20,
+      deposit_amount: 0,
     })
     .select("id")
     .single();
