@@ -381,6 +381,12 @@ export const translations = {
     faqQ3: "Why do admins need MFA?",
     faqA3:
       "Admin actions require a one-time email code to keep approvals secure.",
+    notFoundBadge: "Page missing",
+    notFoundTitle: "We couldn't find that page.",
+    notFoundBody:
+      "The link may be outdated or the page may have moved. Return to CarePoint and continue from the main sections.",
+    notFoundHome: "Back to home",
+    notFoundDoctors: "Browse doctors",
   },
   bg: {
     navDoctors: "Лекари",
@@ -764,6 +770,12 @@ export const translations = {
       "Лекарите изпращат лиценз, който админ екипът преглежда.",
     faqQ3: "Защо админите имат MFA?",
     faqA3: "Админ действията изискват еднократен код за сигурност.",
+    notFoundBadge: "Липсваща страница",
+    notFoundTitle: "Не успяхме да открием тази страница.",
+    notFoundBody:
+      "Връзката може да е остаряла или страницата да е преместена. Върни се в CarePoint и продължи от основните секции.",
+    notFoundHome: "Обратно към началото",
+    notFoundDoctors: "Разгледай лекари",
   },
 } as const;
 
