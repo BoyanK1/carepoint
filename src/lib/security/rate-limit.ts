@@ -28,32 +28,6 @@ function hashIdentifier(identifier: string) {
   return createHash("sha256").update(identifier).digest("hex");
 }
 
-type LocalWindow = {
-  startedAt: number;
-  count: number;
-};
-
-const localFallbackStore = new Map<string, LocalWindow>();
-
-function consumeLocalFallback(
-  key: string,
-  windowSeconds: number,
-  maxRequests: number
-) {
-  const now = Date.now();
-  const windowMs = windowSeconds * 1000;
-  const existing = localFallbackStore.get(key);
-
-  if (!existing || now - existing.startedAt >= windowMs) {
-    localFallbackStore.set(key, { startedAt: now, count: 1 });
-    return true;
-  }
-
-  const nextCount = existing.count + 1;
-  localFallbackStore.set(key, { ...existing, count: nextCount });
-  return nextCount <= maxRequests;
-}
-
 export async function consumeRateLimit(options: RateLimitOptions): Promise<RateLimitResult> {
   const key = `${options.namespace}:${hashIdentifier(options.identifier)}`;
 
@@ -66,18 +40,14 @@ export async function consumeRateLimit(options: RateLimitOptions): Promise<RateL
     });
 
     if (error) {
-      console.error("Rate limit RPC error; using local fallback:", error.message);
-      return {
-        allowed: consumeLocalFallback(key, options.windowSeconds, options.maxRequests),
-      };
+      console.error("Rate limit RPC error:", error.message);
+      return { allowed: false, error: "Rate limit service unavailable." };
     }
 
     return { allowed: Boolean(data) };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Rate limiter failed.";
-    console.error("Rate limiter unavailable; using local fallback:", message);
-    return {
-      allowed: consumeLocalFallback(key, options.windowSeconds, options.maxRequests),
-    };
+    console.error("Rate limiter unavailable:", message);
+    return { allowed: false, error: "Rate limit service unavailable." };
   }
 }

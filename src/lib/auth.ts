@@ -2,6 +2,34 @@ import type { NextAuthOptions } from "next-auth";
 import GitHubProvider from "next-auth/providers/github";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { normalizeUserEmail } from "@/lib/security/pii";
+import { consumeRateLimit } from "@/lib/security/rate-limit";
+
+const SIGNIN_WINDOW_SECONDS = 15 * 60;
+const MAX_SIGNIN_ATTEMPTS = 10;
+
+function readHeader(
+  headers: Record<string, string | string[] | undefined> | undefined,
+  name: string
+) {
+  const direct = headers?.[name] ?? headers?.[name.toLowerCase()];
+  if (Array.isArray(direct)) {
+    return direct[0] ?? null;
+  }
+  return direct ?? null;
+}
+
+function getSignInIdentifier(
+  headers: Record<string, string | string[] | undefined> | undefined,
+  email: string
+) {
+  const forwardedFor = readHeader(headers, "x-forwarded-for");
+  const realIp = readHeader(headers, "x-real-ip");
+  const forwardedHost = readHeader(headers, "x-forwarded-host");
+  const host = readHeader(headers, "host");
+  const ip = forwardedFor?.split(",")[0]?.trim() || realIp?.trim();
+  return `${ip || forwardedHost || host || "unknown"}:${normalizeUserEmail(email)}`;
+}
 
 export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt" },
@@ -16,7 +44,7 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         const email = credentials?.email;
         const password = credentials?.password;
 
@@ -24,9 +52,20 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
+        const rateLimit = await consumeRateLimit({
+          namespace: "signin",
+          identifier: getSignInIdentifier(req.headers, email),
+          windowSeconds: SIGNIN_WINDOW_SECONDS,
+          maxRequests: MAX_SIGNIN_ATTEMPTS,
+        });
+
+        if (rateLimit.error || !rateLimit.allowed) {
+          return null;
+        }
+
         const supabase = getSupabaseClient();
         const { data, error } = await supabase.auth.signInWithPassword({
-          email,
+          email: normalizeUserEmail(email),
           password,
         });
 

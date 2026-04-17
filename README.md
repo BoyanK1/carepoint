@@ -47,7 +47,7 @@ Recommended / feature-specific:
    - Configure redirect URLs for local + Vercel domains.
 
 ### Demo seed tip
-- For best visible demo data, create at least 3 auth users first (1 patient + 2 doctor accounts), then run `supabase/seed.sql`.
+- For the full seeded demo cast, create at least 6 auth users first (3 patient accounts + 3 doctor accounts), then run `supabase/seed.sql`.
 
 ## 4) Authentication setup
 

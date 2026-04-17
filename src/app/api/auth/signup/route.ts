@@ -103,7 +103,8 @@ export async function POST(request: Request) {
   });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    console.error("Signup failed:", error.message);
+    return NextResponse.json({ error: "Sign up failed." }, { status: 400 });
   }
 
   const admin = getSupabaseAdmin();

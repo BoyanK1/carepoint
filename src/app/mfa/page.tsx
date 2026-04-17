@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useLanguage } from "@/components/LanguageProvider";
+import { getSafeInternalRedirect } from "@/lib/security/redirect";
 
 export default function MfaPage() {
   const { data: session } = useSession();
@@ -53,7 +54,7 @@ export default function MfaPage() {
     }
 
     setStatus("done");
-    router.push(searchParams.get("next") || "/admin");
+    router.push(getSafeInternalRedirect(searchParams.get("next"), "/admin"));
     router.refresh();
   };
 
