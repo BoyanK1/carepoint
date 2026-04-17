@@ -75,6 +75,7 @@ export default function NotificationsPage() {
         is_read: true,
       }))
     );
+    router.refresh();
   }
 
   return (

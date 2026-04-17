@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { signOut } from "next-auth/react";
 import { Avatar } from "@/components/Avatar";
 import { useLanguage } from "@/components/LanguageProvider";
 
@@ -123,19 +124,28 @@ export function NavbarClient({ user, initialUnreadCount = 0 }: NavbarClientProps
               </div>
             </nav>
             {user ? (
-              <Link
-                href="/profile"
-                className="flex max-w-[14rem] shrink-0 items-center gap-2 overflow-hidden rounded-full border border-slate-200/90 bg-white/95 py-1.5 pl-1.5 pr-2.5 shadow-sm transition hover:border-slate-300"
-                title={user.name || user.email || t("navAccount")}
-              >
-                <Avatar name={user.name} src={user.avatarUrl} size={32} />
-                <span className="max-w-[9rem] truncate text-sm font-medium text-slate-700">
-                  {user.name || user.email || t("navAccount")}
-                </span>
-                <span className="hidden rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600 sm:inline-flex">
-                  {roleLabel}
-                </span>
-              </Link>
+              <>
+                <Link
+                  href="/profile"
+                  className="flex max-w-[14rem] shrink-0 items-center gap-2 overflow-hidden rounded-full border border-slate-200/90 bg-white/95 py-1.5 pl-1.5 pr-2.5 shadow-sm transition hover:border-slate-300"
+                  title={user.name || user.email || t("navAccount")}
+                >
+                  <Avatar name={user.name} src={user.avatarUrl} size={32} />
+                  <span className="max-w-[9rem] truncate text-sm font-medium text-slate-700">
+                    {user.name || user.email || t("navAccount")}
+                  </span>
+                  <span className="hidden rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600 sm:inline-flex">
+                    {roleLabel}
+                  </span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => signOut({ callbackUrl: "/" })}
+                  className="rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:border-rose-300 hover:bg-rose-100 hover:text-rose-800"
+                >
+                  {t("profileSignOut")}
+                </button>
+              </>
             ) : (
               <Link
                 href="/auth"

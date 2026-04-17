@@ -1,3 +1,5 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 export interface AvailabilityRow {
   doctor_profile_id: string;
   day_of_week: number;
@@ -17,6 +19,16 @@ export interface TimeSlot {
   startsAt: string;
   endsAt: string;
 }
+
+export interface AppointmentStatusInput {
+  id?: string;
+  startsAt: string;
+  endsAt?: string | null;
+  status: string;
+  canceledAt?: string | null;
+}
+
+export const ACTIVE_APPOINTMENT_STATUSES = new Set(["scheduled", "confirmed"]);
 
 function parseTime(value: string) {
   const [hours = "0", minutes = "0", seconds = "0"] = value.split(":");
@@ -48,6 +60,65 @@ function overlaps(
   endB: Date
 ) {
   return startA < endB && startB < endA;
+}
+
+export function getAppointmentEffectiveEnd(
+  input: Pick<AppointmentStatusInput, "startsAt" | "endsAt">
+) {
+  return new Date(input.endsAt ?? input.startsAt);
+}
+
+export function shouldAutoCompleteAppointment(
+  input: AppointmentStatusInput,
+  now = Date.now()
+) {
+  if (input.canceledAt || !ACTIVE_APPOINTMENT_STATUSES.has(input.status)) {
+    return false;
+  }
+
+  return getAppointmentEffectiveEnd(input).getTime() <= now;
+}
+
+export function getEffectiveAppointmentStatus(
+  input: AppointmentStatusInput,
+  now = Date.now()
+) {
+  if (input.canceledAt || input.status === "cancelled") {
+    return "cancelled";
+  }
+
+  if (shouldAutoCompleteAppointment(input, now)) {
+    return "completed";
+  }
+
+  return input.status;
+}
+
+export async function completeExpiredAppointments(
+  admin: SupabaseClient,
+  appointments: AppointmentStatusInput[]
+) {
+  const ids = appointments
+    .filter((appointment): appointment is AppointmentStatusInput & { id: string } =>
+      Boolean(appointment.id) && shouldAutoCompleteAppointment(appointment)
+    )
+    .map((appointment) => appointment.id);
+
+  if (ids.length === 0) {
+    return new Set<string>();
+  }
+
+  const { error } = await admin
+    .from("appointments")
+    .update({ status: "completed" })
+    .in("id", ids)
+    .in("status", Array.from(ACTIVE_APPOINTMENT_STATUSES));
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return new Set(ids);
 }
 
 export function getAvailableSlots(

@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useLanguage } from "@/components/LanguageProvider";
 
 export default function MfaPage() {
   const { data: session } = useSession();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { t } = useLanguage();
   const [code, setCode] = useState("");
   const [status, setStatus] = useState<
@@ -50,6 +53,8 @@ export default function MfaPage() {
     }
 
     setStatus("done");
+    router.push(searchParams.get("next") || "/admin");
+    router.refresh();
   };
 
   const subtitle = t("mfaSubtitle").replace(

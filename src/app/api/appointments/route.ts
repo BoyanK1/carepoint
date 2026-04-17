@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import {
+  completeExpiredAppointments,
+  getEffectiveAppointmentStatus,
   isSlotAligned,
   type AvailabilityRow,
 } from "@/lib/appointments";
@@ -73,6 +75,29 @@ export async function GET() {
       deposit_amount: number | null;
       paid_at: string | null;
     }> | null) ?? [];
+
+  try {
+    await completeExpiredAppointments(
+      admin,
+      rows.map((row) => ({
+        id: row.id,
+        startsAt: row.starts_at,
+        endsAt: row.ends_at,
+        status: row.status,
+        canceledAt: row.canceled_at,
+      }))
+    );
+  } catch (normalizeError) {
+    return NextResponse.json(
+      {
+        error:
+          normalizeError instanceof Error
+            ? normalizeError.message
+            : "Could not normalize appointments.",
+      },
+      { status: 500 }
+    );
+  }
 
   const doctorIds = Array.from(
     new Set(rows.map((row) => row.doctor_profile_id).filter((value): value is string => Boolean(value)))
@@ -145,7 +170,13 @@ export async function GET() {
         id: row.id,
         startsAt: row.starts_at,
         endsAt: row.ends_at,
-        status: row.status,
+        status: getEffectiveAppointmentStatus({
+          id: row.id,
+          startsAt: row.starts_at,
+          endsAt: row.ends_at,
+          status: row.status,
+          canceledAt: row.canceled_at,
+        }),
         reason: row.reason,
         createdAt: row.created_at,
         canceledAt: row.canceled_at,

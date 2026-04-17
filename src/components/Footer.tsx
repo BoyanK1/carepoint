@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { signOut, useSession } from "next-auth/react";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { useLanguage } from "@/components/LanguageProvider";
 
 export function Footer() {
+  const { data: session } = useSession();
   const { t } = useLanguage();
   const year = new Date().getFullYear();
   const copyright = t("footerCopyright").replace("{year}", String(year));
@@ -109,9 +111,19 @@ export function Footer() {
                 >
                   {t("footerFeedback")}
                 </Link>
-                <Link href="/auth" className="block transition hover:text-slate-900">
-                  {t("footerSignIn")}
-                </Link>
+                {session?.user ? (
+                  <button
+                    type="button"
+                    onClick={() => signOut({ callbackUrl: "/" })}
+                    className="block text-left transition hover:text-slate-900"
+                  >
+                    {t("profileSignOut")}
+                  </button>
+                ) : (
+                  <Link href="/auth" className="block transition hover:text-slate-900">
+                    {t("footerSignIn")}
+                  </Link>
+                )}
                 <Link
                   href="/notifications"
                   className="block transition hover:text-slate-900"

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useLanguage } from "@/components/LanguageProvider";
 
 export interface Application {
@@ -18,6 +19,7 @@ interface AdminApplicationsProps {
 
 export function AdminApplications({ applications }: AdminApplicationsProps) {
   const { t } = useLanguage();
+  const router = useRouter();
   const [items, setItems] = useState(applications);
   const [error, setError] = useState<string | null>(null);
   const validItems = items.filter(
@@ -38,6 +40,10 @@ export function AdminApplications({ applications }: AdminApplicationsProps) {
 
     if (!response.ok) {
       const payload = await response.json().catch(() => null);
+      if (response.status === 401 && payload?.error === "MFA verification required.") {
+        router.push("/mfa?next=/admin");
+        return;
+      }
       setError(payload?.error || t("adminActionFailed"));
       return;
     }

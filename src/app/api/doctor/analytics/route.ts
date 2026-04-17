@@ -3,6 +3,10 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getUserProfile } from "@/lib/profiles";
+import {
+  completeExpiredAppointments,
+  getEffectiveAppointmentStatus,
+} from "@/lib/appointments";
 
 function startOfWeek(date: Date) {
   const result = new Date(date);
@@ -78,10 +82,43 @@ export async function GET(request: Request) {
     (appointments as Array<{ id: string; starts_at: string; status: string }> | null) ?? [];
   const now = Date.now();
 
-  const total = appts.length;
-  const upcoming = appts.filter((row) => new Date(row.starts_at).getTime() > now && ["scheduled", "confirmed"].includes(row.status)).length;
-  const completed = appts.filter((row) => row.status === "completed").length;
-  const cancelled = appts.filter((row) => row.status === "cancelled").length;
+  try {
+    await completeExpiredAppointments(
+      admin,
+      appts.map((appointment) => ({
+        id: appointment.id,
+        startsAt: appointment.starts_at,
+        status: appointment.status,
+      }))
+    );
+  } catch (normalizeError) {
+    return NextResponse.json(
+      {
+        error:
+          normalizeError instanceof Error
+            ? normalizeError.message
+            : "Could not normalize appointment analytics.",
+      },
+      { status: 500 }
+    );
+  }
+
+  const normalizedAppointments = appts.map((appointment) => ({
+    ...appointment,
+    status: getEffectiveAppointmentStatus({
+      id: appointment.id,
+      startsAt: appointment.starts_at,
+      status: appointment.status,
+    }),
+  }));
+
+  const total = normalizedAppointments.length;
+  const upcoming = normalizedAppointments.filter(
+    (row) =>
+      new Date(row.starts_at).getTime() > now && ["scheduled", "confirmed"].includes(row.status)
+  ).length;
+  const completed = normalizedAppointments.filter((row) => row.status === "completed").length;
+  const cancelled = normalizedAppointments.filter((row) => row.status === "cancelled").length;
 
   const reviewRows = (reviews as Array<{ id: string; rating: number; created_at: string }> | null) ?? [];
   const ratingCount = reviewRows.length;
@@ -91,7 +128,7 @@ export async function GET(request: Request) {
       : null;
 
   const weekMap = new Map<string, number>();
-  for (const row of appts) {
+  for (const row of normalizedAppointments) {
     const bucket = startOfWeek(new Date(row.starts_at)).toISOString().slice(0, 10);
     weekMap.set(bucket, (weekMap.get(bucket) ?? 0) + 1);
   }

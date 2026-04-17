@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import {
+  completeExpiredAppointments,
+  getEffectiveAppointmentStatus,
+} from "@/lib/appointments";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -30,9 +34,6 @@ export async function GET(request: Request) {
     .eq("patient_user_id", session.user.id)
     .order("starts_at", { ascending: false });
 
-  if (statusFilter && statusFilter !== "all") {
-    query = query.eq("status", statusFilter);
-  }
   if (fromFilter) {
     query = query.gte("starts_at", new Date(fromFilter).toISOString());
   }
@@ -56,6 +57,29 @@ export async function GET(request: Request) {
       created_at: string;
       canceled_at: string | null;
     }> | null) ?? [];
+
+  try {
+    await completeExpiredAppointments(
+      admin,
+      appointments.map((appointment) => ({
+        id: appointment.id,
+        startsAt: appointment.starts_at,
+        endsAt: appointment.ends_at,
+        status: appointment.status,
+        canceledAt: appointment.canceled_at,
+      }))
+    );
+  } catch (normalizeError) {
+    return NextResponse.json(
+      {
+        error:
+          normalizeError instanceof Error
+            ? normalizeError.message
+            : "Could not normalize appointment history.",
+      },
+      { status: 500 }
+    );
+  }
 
   const doctorIds = Array.from(
     new Set(
@@ -104,8 +128,15 @@ export async function GET(request: Request) {
     ])
   );
 
-  return NextResponse.json({
-    history: appointments.map((appointment) => {
+  const history = appointments
+    .map((appointment) => {
+      const normalizedStatus = getEffectiveAppointmentStatus({
+        id: appointment.id,
+        startsAt: appointment.starts_at,
+        endsAt: appointment.ends_at,
+        status: appointment.status,
+        canceledAt: appointment.canceled_at,
+      });
       const doctor = appointment.doctor_profile_id
         ? doctorMap.get(appointment.doctor_profile_id)
         : null;
@@ -113,7 +144,7 @@ export async function GET(request: Request) {
         id: appointment.id,
         startsAt: appointment.starts_at,
         endsAt: appointment.ends_at,
-        status: appointment.status,
+        status: normalizedStatus,
         reason: appointment.reason,
         createdAt: appointment.created_at,
         canceledAt: appointment.canceled_at,
@@ -126,6 +157,10 @@ export async function GET(request: Request) {
             }
           : null,
       };
-    }),
-  });
+    })
+    .filter((appointment) =>
+      !statusFilter || statusFilter === "all" ? true : appointment.status === statusFilter
+    );
+
+  return NextResponse.json({ history });
 }

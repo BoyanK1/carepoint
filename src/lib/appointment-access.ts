@@ -1,4 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  completeExpiredAppointments,
+  getEffectiveAppointmentStatus,
+} from "@/lib/appointments";
 
 export interface AppointmentAccessRow {
   id: string;
@@ -40,6 +44,24 @@ export async function resolveAppointmentAccess(
   }
 
   const appointment = appointmentData as AppointmentAccessRow;
+  const normalizedStatus = getEffectiveAppointmentStatus({
+    id: appointment.id,
+    startsAt: appointment.starts_at,
+    endsAt: appointment.ends_at,
+    status: appointment.status,
+  });
+
+  if (normalizedStatus !== appointment.status) {
+    await completeExpiredAppointments(admin, [
+      {
+        id: appointment.id,
+        startsAt: appointment.starts_at,
+        endsAt: appointment.ends_at,
+        status: appointment.status,
+      },
+    ]).catch(() => null);
+    appointment.status = normalizedStatus;
+  }
 
   let doctorUserId: string | null = null;
   if (appointment.doctor_profile_id) {

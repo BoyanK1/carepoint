@@ -1,6 +1,10 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import {
+  completeExpiredAppointments,
+  getEffectiveAppointmentStatus,
+} from "@/lib/appointments";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -23,6 +27,30 @@ export async function GET() {
     return new Response(error.message, { status: 500 });
   }
 
+  try {
+    await completeExpiredAppointments(
+      admin,
+      ((data ?? []) as Array<{
+        id: string;
+        starts_at: string;
+        ends_at: string | null;
+        status: string;
+      }>).map((row) => ({
+        id: row.id,
+        startsAt: row.starts_at,
+        endsAt: row.ends_at,
+        status: row.status,
+      }))
+    );
+  } catch (normalizeError) {
+    return new Response(
+      normalizeError instanceof Error
+        ? normalizeError.message
+        : "Could not normalize appointment export.",
+      { status: 500 }
+    );
+  }
+
   const lines = [
     ["appointment_id", "doctor_profile_id", "starts_at", "ends_at", "status", "reason"].join(","
     ),
@@ -43,7 +71,12 @@ export async function GET() {
         row.doctor_profile_id ?? "",
         row.starts_at,
         row.ends_at ?? "",
-        row.status,
+        getEffectiveAppointmentStatus({
+          id: row.id,
+          startsAt: row.starts_at,
+          endsAt: row.ends_at,
+          status: row.status,
+        }),
         `"${escapedReason}"`,
       ].join(",")
     );

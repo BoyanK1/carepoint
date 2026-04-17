@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { isSlotAligned, type AvailabilityRow } from "@/lib/appointments";
+import {
+  completeExpiredAppointments,
+  getEffectiveAppointmentStatus,
+  isSlotAligned,
+  type AvailabilityRow,
+} from "@/lib/appointments";
 import { createManyNotifications, sendStatusEmail } from "@/lib/notifications";
 import { getUserProfile } from "@/lib/profiles";
 import { consumeRateLimit } from "@/lib/security/rate-limit";
@@ -223,6 +228,25 @@ export async function PATCH(
 
   if (!appointment.doctor_profile_id) {
     return NextResponse.json({ error: "Appointment doctor is missing." }, { status: 400 });
+  }
+
+  const effectiveStatus = getEffectiveAppointmentStatus({
+    id: appointment.id,
+    startsAt: appointment.starts_at,
+    endsAt: appointment.ends_at,
+    status: appointment.status,
+  });
+
+  if (effectiveStatus !== appointment.status) {
+    await completeExpiredAppointments(admin, [
+      {
+        id: appointment.id,
+        startsAt: appointment.starts_at,
+        endsAt: appointment.ends_at,
+        status: appointment.status,
+      },
+    ]).catch(() => null);
+    appointment.status = effectiveStatus;
   }
 
   const { data: doctorProfile } = await admin
