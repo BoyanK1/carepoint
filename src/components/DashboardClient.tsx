@@ -46,24 +46,29 @@ export function DashboardClient({
     setCityStatus("saving");
     setCityError(null);
 
-    const response = await fetch("/api/profile/city", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ city: cityValue }),
-    });
+    try {
+      const response = await fetch("/api/profile/city", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ city: cityValue }),
+      });
 
-    const payload = (await response.json().catch(() => null)) as
-      | { ok?: boolean; city?: string; error?: string }
-      | null;
+      const payload = (await response.json().catch(() => null)) as
+        | { ok?: boolean; city?: string; error?: string }
+        | null;
 
-    if (!response.ok || !payload?.ok) {
+      if (!response.ok || !payload?.ok) {
+        setCityStatus("error");
+        setCityError(payload?.error || t("dashboardCitySaveError"));
+        return;
+      }
+
+      setSavedCity(payload.city ?? cityValue);
+      setCityStatus("ok");
+    } catch {
       setCityStatus("error");
-      setCityError(payload?.error || t("dashboardCitySaveError"));
-      return;
+      setCityError(t("dashboardCitySaveError"));
     }
-
-    setSavedCity(payload.city ?? cityValue);
-    setCityStatus("ok");
   }
 
   return (

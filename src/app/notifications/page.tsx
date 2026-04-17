@@ -30,20 +30,25 @@ export default function NotificationsPage() {
     setLoading(true);
     setError(null);
 
-    const response = await fetch("/api/notifications", { cache: "no-store" });
-    const payload = (await response.json()) as {
-      notifications?: NotificationItem[];
-      error?: string;
-    };
+    try {
+      const response = await fetch("/api/notifications", { cache: "no-store" });
+      const payload = (await response.json().catch(() => null)) as {
+        notifications?: NotificationItem[];
+        error?: string;
+      } | null;
 
-    if (!response.ok) {
-      setError(payload.error || t("notificationsLoadError"));
+      if (!response.ok) {
+        setError(payload?.error || t("notificationsLoadError"));
+        setLoading(false);
+        return;
+      }
+
+      setNotifications(payload?.notifications ?? []);
+    } catch {
+      setError(t("notificationsLoadError"));
+    } finally {
       setLoading(false);
-      return;
     }
-
-    setNotifications(payload.notifications ?? []);
-    setLoading(false);
   }, [t]);
 
   useEffect(() => {
@@ -52,30 +57,33 @@ export default function NotificationsPage() {
       return;
     }
     if (status === "authenticated") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       void loadNotifications();
     }
   }, [status, router, loadNotifications]);
 
   async function markAllRead() {
-    const response = await fetch("/api/notifications", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ markAll: true }),
-    });
+    try {
+      const response = await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ markAll: true }),
+      });
 
-    if (!response.ok) {
+      if (!response.ok) {
+        setError(t("notificationsLoadError"));
+        return;
+      }
+
+      setNotifications((current) =>
+        current.map((item) => ({
+          ...item,
+          is_read: true,
+        }))
+      );
+      router.refresh();
+    } catch {
       setError(t("notificationsLoadError"));
-      return;
     }
-
-    setNotifications((current) =>
-      current.map((item) => ({
-        ...item,
-        is_read: true,
-      }))
-    );
-    router.refresh();
   }
 
   return (

@@ -23,39 +23,50 @@ export default function MfaPage() {
     setStatus("sending");
     setError(null);
 
-    const response = await fetch("/api/mfa/start", { method: "POST" });
-    if (!response.ok) {
-      const payload = await response.json().catch(() => null);
-      setStatus("error");
-      setError(payload?.error || t("mfaSendError"));
-      setTimeout(() => setSendAnimating(false), 250);
-      return;
-    }
+    try {
+      const response = await fetch("/api/mfa/start", { method: "POST" });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        setStatus("error");
+        setError(payload?.error || t("mfaSendError"));
+        setTimeout(() => setSendAnimating(false), 250);
+        return;
+      }
 
-    setStatus("sent");
-    setTimeout(() => setSendAnimating(false), 250);
+      setStatus("sent");
+      setTimeout(() => setSendAnimating(false), 250);
+    } catch {
+      setStatus("error");
+      setError(t("mfaSendError"));
+      setTimeout(() => setSendAnimating(false), 250);
+    }
   };
 
   const verifyCode = async () => {
     setStatus("verifying");
     setError(null);
 
-    const response = await fetch("/api/mfa/verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code }),
-    });
+    try {
+      const response = await fetch("/api/mfa/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
 
-    if (!response.ok) {
-      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        setStatus("error");
+        setError(payload?.error || t("mfaInvalidCode"));
+        return;
+      }
+
+      setStatus("done");
+      router.push(getSafeInternalRedirect(searchParams.get("next"), "/admin"));
+      router.refresh();
+    } catch {
       setStatus("error");
-      setError(payload?.error || t("mfaInvalidCode"));
-      return;
+      setError(t("mfaInvalidCode"));
     }
-
-    setStatus("done");
-    router.push(getSafeInternalRedirect(searchParams.get("next"), "/admin"));
-    router.refresh();
   };
 
   const subtitle = t("mfaSubtitle").replace(

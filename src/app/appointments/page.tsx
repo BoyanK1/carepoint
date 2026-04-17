@@ -87,20 +87,24 @@ export default function AppointmentsPage() {
   const loadAppointments = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const response = await fetch("/api/appointments", { cache: "no-store" });
-    const payload = (await response.json()) as {
-      appointments?: AppointmentItem[];
-      error?: string;
-    };
+    try {
+      const response = await fetch("/api/appointments", { cache: "no-store" });
+      const payload = (await response.json()) as {
+        appointments?: AppointmentItem[];
+        error?: string;
+      };
 
-    if (!response.ok) {
-      setError(payload.error || t("appointmentsLoadError"));
+      if (!response.ok) {
+        setError(payload.error || t("appointmentsLoadError"));
+        return;
+      }
+
+      setAppointments(payload.appointments ?? []);
+    } catch {
+      setError(t("appointmentsLoadError"));
+    } finally {
       setLoading(false);
-      return;
     }
-
-    setAppointments(payload.appointments ?? []);
-    setLoading(false);
   }, [t]);
 
   useEffect(() => {
@@ -109,7 +113,6 @@ export default function AppointmentsPage() {
       return;
     }
     if (status === "authenticated") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       void loadAppointments();
     }
   }, [status, router, loadAppointments]);
@@ -150,24 +153,39 @@ export default function AppointmentsPage() {
 
   async function updateAppointment(id: string, action: "cancel" | "reschedule") {
     setPendingId(id);
-    const response = await fetch(`/api/appointments/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body:
-        action === "cancel"
-          ? JSON.stringify({ action })
-          : JSON.stringify({ action, startsAt: reschedule[id] }),
-    });
+    const currentAppointment = appointments.find((item) => item.id === id);
+    const startsAt =
+      reschedule[id] ??
+      (currentAppointment ? toDateTimeLocal(currentAppointment.startsAt) : "");
 
-    if (!response.ok) {
-      const payload = await response.json().catch(() => null);
-      setError(payload?.error || t("appointmentsUpdateError"));
+    if (action === "reschedule" && !startsAt) {
+      setError(t("appointmentsUpdateError"));
       setPendingId(null);
       return;
     }
 
-    setPendingId(null);
-    await loadAppointments();
+    try {
+      const response = await fetch(`/api/appointments/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body:
+          action === "cancel"
+            ? JSON.stringify({ action })
+            : JSON.stringify({ action, startsAt }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        setError(payload?.error || t("appointmentsUpdateError"));
+        return;
+      }
+
+      await loadAppointments();
+    } catch {
+      setError(t("appointmentsUpdateError"));
+    } finally {
+      setPendingId(null);
+    }
   }
 
   async function toggleFavorite(appointment: AppointmentItem) {
@@ -175,27 +193,32 @@ export default function AppointmentsPage() {
       return;
     }
 
-    const response = await fetch(`/api/doctors/${appointment.doctor.id}/favorite`, {
-      method: appointment.doctor.isFavorite ? "DELETE" : "POST",
-    });
-    if (!response.ok) {
-      return;
-    }
+    try {
+      const response = await fetch(`/api/doctors/${appointment.doctor.id}/favorite`, {
+        method: appointment.doctor.isFavorite ? "DELETE" : "POST",
+      });
+      if (!response.ok) {
+        setError(t("appointmentsUpdateError"));
+        return;
+      }
 
-    setAppointments((current) =>
-      current.map((item) => {
-        if (!item.doctor || item.doctor.id !== appointment.doctor?.id) {
-          return item;
-        }
-        return {
-          ...item,
-          doctor: {
-            ...item.doctor,
-            isFavorite: !item.doctor.isFavorite,
-          },
-        };
-      })
-    );
+      setAppointments((current) =>
+        current.map((item) => {
+          if (!item.doctor || item.doctor.id !== appointment.doctor?.id) {
+            return item;
+          }
+          return {
+            ...item,
+            doctor: {
+              ...item.doctor,
+              isFavorite: !item.doctor.isFavorite,
+            },
+          };
+        })
+      );
+    } catch {
+      setError(t("appointmentsUpdateError"));
+    }
   }
 
   return (

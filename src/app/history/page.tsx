@@ -84,22 +84,26 @@ export default function HistoryPage() {
       params.set("to", toDate);
     }
 
-    const response = await fetch(`/api/appointments/history?${params.toString()}`, {
-      cache: "no-store",
-    });
-    const payload = (await response.json()) as {
-      history?: HistoryItem[];
-      error?: string;
-    };
+    try {
+      const response = await fetch(`/api/appointments/history?${params.toString()}`, {
+        cache: "no-store",
+      });
+      const payload = (await response.json()) as {
+        history?: HistoryItem[];
+        error?: string;
+      };
 
-    if (!response.ok) {
-      setError(payload.error || t("historyLoadError"));
+      if (!response.ok) {
+        setError(payload.error || t("historyLoadError"));
+        return;
+      }
+
+      setItems(payload.history ?? []);
+    } catch {
+      setError(t("historyLoadError"));
+    } finally {
       setLoading(false);
-      return;
     }
-
-    setItems(payload.history ?? []);
-    setLoading(false);
   }, [fromDate, statusFilter, t, toDate]);
 
   useEffect(() => {
@@ -108,7 +112,6 @@ export default function HistoryPage() {
       return;
     }
     if (status === "authenticated") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       void loadHistory();
     }
   }, [status, router, loadHistory]);
@@ -185,7 +188,15 @@ export default function HistoryPage() {
         <button
           type="button"
           onClick={() => {
-            window.location.href = "/api/appointments/history/export";
+            const params = new URLSearchParams();
+            params.set("status", statusFilter);
+            if (fromDate) {
+              params.set("from", fromDate);
+            }
+            if (toDate) {
+              params.set("to", toDate);
+            }
+            window.location.href = `/api/appointments/history/export?${params.toString()}`;
           }}
           className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
         >

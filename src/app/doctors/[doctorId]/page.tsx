@@ -73,24 +73,27 @@ export default function DoctorDetailPage() {
     setLoading(true);
     setError(null);
 
-    const response = await fetch(`/api/doctors/${doctorId}`, { cache: "no-store" });
-    const payload = (await response.json()) as {
-      doctor?: DoctorDetail;
-      error?: string;
-    };
+    try {
+      const response = await fetch(`/api/doctors/${doctorId}`, { cache: "no-store" });
+      const payload = (await response.json()) as {
+        doctor?: DoctorDetail;
+        error?: string;
+      };
 
-    if (!response.ok || !payload.doctor) {
-      setError(payload.error || t("doctorDetailLoadError"));
+      if (!response.ok || !payload.doctor) {
+        setError(payload.error || t("doctorDetailLoadError"));
+        return;
+      }
+
+      setDoctor(payload.doctor);
+    } catch {
+      setError(t("doctorDetailLoadError"));
+    } finally {
       setLoading(false);
-      return;
     }
-
-    setDoctor(payload.doctor);
-    setLoading(false);
   }, [doctorId, t]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadDoctor();
   }, [loadDoctor]);
 
@@ -126,15 +129,19 @@ export default function DoctorDetailPage() {
       return;
     }
 
-    const response = await fetch(`/api/doctors/${doctor.id}/favorite`, {
-      method: doctor.isFavorite ? "DELETE" : "POST",
-    });
+    try {
+      const response = await fetch(`/api/doctors/${doctor.id}/favorite`, {
+        method: doctor.isFavorite ? "DELETE" : "POST",
+      });
 
-    if (!response.ok) {
+      if (!response.ok) {
+        return;
+      }
+
+      setDoctor({ ...doctor, isFavorite: !doctor.isFavorite });
+    } catch {
       return;
     }
-
-    setDoctor({ ...doctor, isFavorite: !doctor.isFavorite });
   }
 
   async function bookSlot(slot: SlotItem) {
@@ -154,28 +161,32 @@ export default function DoctorDetailPage() {
     setBookingError(null);
     setBookingMessage(null);
 
-    const response = await fetch("/api/appointments", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        doctorProfileId: doctor.id,
-        startsAt: slot.startsAt,
-        reason,
-      }),
-    });
+    try {
+      const response = await fetch("/api/appointments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          doctorProfileId: doctor.id,
+          startsAt: slot.startsAt,
+          reason,
+        }),
+      });
 
-    const payload = (await response.json()) as { ok?: boolean; error?: string };
+      const payload = (await response.json()) as { ok?: boolean; error?: string };
 
-    if (!response.ok || !payload.ok) {
-      setBookingError(payload.error || t("doctorDetailBookingError"));
+      if (!response.ok || !payload.ok) {
+        setBookingError(payload.error || t("doctorDetailBookingError"));
+        return;
+      }
+
+      setBookingMessage(t("doctorDetailBookedSuccess"));
+      setReason("");
+      await loadDoctor();
+    } catch {
+      setBookingError(t("doctorDetailBookingError"));
+    } finally {
       setPendingSlot(null);
-      return;
     }
-
-    setBookingMessage(t("doctorDetailBookedSuccess"));
-    setPendingSlot(null);
-    setReason("");
-    await loadDoctor();
   }
 
   async function submitReview() {
@@ -190,21 +201,25 @@ export default function DoctorDetailPage() {
     setReviewError(null);
     setReviewMessage(null);
 
-    const response = await fetch(`/api/doctors/${doctor.id}/reviews`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ rating, comment }),
-    });
+    try {
+      const response = await fetch(`/api/doctors/${doctor.id}/reviews`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rating, comment }),
+      });
 
-    const payload = (await response.json()) as { ok?: boolean; error?: string };
-    if (!response.ok || !payload.ok) {
-      setReviewError(payload.error || t("doctorDetailReviewError"));
-      return;
+      const payload = (await response.json()) as { ok?: boolean; error?: string };
+      if (!response.ok || !payload.ok) {
+        setReviewError(payload.error || t("doctorDetailReviewError"));
+        return;
+      }
+
+      setReviewMessage(t("doctorDetailReviewSubmitted"));
+      setComment("");
+      await loadDoctor();
+    } catch {
+      setReviewError(t("doctorDetailReviewError"));
     }
-
-    setReviewMessage(t("doctorDetailReviewSubmitted"));
-    setComment("");
-    await loadDoctor();
   }
 
   if (loading) {

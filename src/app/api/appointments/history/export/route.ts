@@ -6,7 +6,21 @@ import {
   getEffectiveAppointmentStatus,
 } from "@/lib/appointments";
 
-export async function GET() {
+function getStartOfDayIso(value: string) {
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+function getNextDayIso(value: string) {
+  const date = new Date(`${value}T00:00:00.000Z`);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  date.setUTCDate(date.getUTCDate() + 1);
+  return date.toISOString();
+}
+
+export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return new Response("Unauthorized", { status: 401 });
@@ -17,11 +31,35 @@ export async function GET() {
     return new Response("Supabase admin is not configured.", { status: 500 });
   }
 
-  const { data, error } = await admin
+  const url = new URL(request.url);
+  const statusFilter = url.searchParams.get("status")?.trim();
+  const fromFilter = url.searchParams.get("from")?.trim();
+  const toFilter = url.searchParams.get("to")?.trim();
+
+  const fromIso = fromFilter ? getStartOfDayIso(fromFilter) : null;
+  const toExclusiveIso = toFilter ? getNextDayIso(toFilter) : null;
+
+  if (fromFilter && !fromIso) {
+    return new Response("Invalid from date.", { status: 400 });
+  }
+  if (toFilter && !toExclusiveIso) {
+    return new Response("Invalid to date.", { status: 400 });
+  }
+
+  let query = admin
     .from("appointments")
-    .select("id, starts_at, ends_at, status, reason, doctor_profile_id")
+    .select("id, starts_at, ends_at, status, reason, doctor_profile_id, canceled_at")
     .eq("patient_user_id", session.user.id)
     .order("starts_at", { ascending: false });
+
+  if (fromIso) {
+    query = query.gte("starts_at", fromIso);
+  }
+  if (toExclusiveIso) {
+    query = query.lt("starts_at", toExclusiveIso);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     return new Response(error.message, { status: 500 });
@@ -35,11 +73,13 @@ export async function GET() {
         starts_at: string;
         ends_at: string | null;
         status: string;
+        canceled_at?: string | null;
       }>).map((row) => ({
         id: row.id,
         startsAt: row.starts_at,
         endsAt: row.ends_at,
         status: row.status,
+        canceledAt: row.canceled_at ?? null,
       }))
     );
   } catch (normalizeError) {
@@ -63,7 +103,20 @@ export async function GET() {
     status: string;
     reason: string | null;
     doctor_profile_id: string | null;
+    canceled_at: string | null;
   }>) {
+    const normalizedStatus = getEffectiveAppointmentStatus({
+      id: row.id,
+      startsAt: row.starts_at,
+      endsAt: row.ends_at,
+      status: row.status,
+      canceledAt: row.canceled_at,
+    });
+
+    if (statusFilter && statusFilter !== "all" && normalizedStatus !== statusFilter) {
+      continue;
+    }
+
     const escapedReason = (row.reason ?? "").replaceAll('"', '""');
     lines.push(
       [
@@ -71,12 +124,7 @@ export async function GET() {
         row.doctor_profile_id ?? "",
         row.starts_at,
         row.ends_at ?? "",
-        getEffectiveAppointmentStatus({
-          id: row.id,
-          startsAt: row.starts_at,
-          endsAt: row.ends_at,
-          status: row.status,
-        }),
+        normalizedStatus,
         `"${escapedReason}"`,
       ].join(",")
     );

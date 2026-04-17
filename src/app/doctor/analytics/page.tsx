@@ -38,22 +38,27 @@ export default function DoctorAnalyticsPage() {
     setLoading(true);
     setError(null);
 
-    const response = await fetch("/api/doctor/analytics", { cache: "no-store" });
-    const data = (await response.json().catch(() => null)) as
-      | (AnalyticsPayload & { error?: string })
-      | null;
+    try {
+      const response = await fetch("/api/doctor/analytics", { cache: "no-store" });
+      const data = (await response.json().catch(() => null)) as
+        | (AnalyticsPayload & { error?: string })
+        | null;
 
-    if (!response.ok || !data?.doctor || !data.metrics) {
-      setError(data?.error || t("doctorAnalyticsLoadError"));
+      if (!response.ok || !data?.doctor || !data.metrics) {
+        setError(data?.error || t("doctorAnalyticsLoadError"));
+        setLoading(false);
+        return;
+      }
+
+      setPayload({
+        doctor: data.doctor,
+        metrics: data.metrics,
+      });
+    } catch {
+      setError(t("doctorAnalyticsLoadError"));
+    } finally {
       setLoading(false);
-      return;
     }
-
-    setPayload({
-      doctor: data.doctor,
-      metrics: data.metrics,
-    });
-    setLoading(false);
   }, [t]);
 
   useEffect(() => {
@@ -63,7 +68,6 @@ export default function DoctorAnalyticsPage() {
     }
 
     if (status === "authenticated") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       void loadAnalytics();
     }
   }, [status, router, loadAnalytics]);

@@ -7,6 +7,20 @@ import {
   getEffectiveAppointmentStatus,
 } from "@/lib/appointments";
 
+function getStartOfDayIso(value: string) {
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+function getNextDayIso(value: string) {
+  const date = new Date(`${value}T00:00:00.000Z`);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  date.setUTCDate(date.getUTCDate() + 1);
+  return date.toISOString();
+}
+
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -34,11 +48,21 @@ export async function GET(request: Request) {
     .eq("patient_user_id", session.user.id)
     .order("starts_at", { ascending: false });
 
-  if (fromFilter) {
-    query = query.gte("starts_at", new Date(fromFilter).toISOString());
+  const fromIso = fromFilter ? getStartOfDayIso(fromFilter) : null;
+  const toExclusiveIso = toFilter ? getNextDayIso(toFilter) : null;
+
+  if (fromFilter && !fromIso) {
+    return NextResponse.json({ error: "Invalid from date." }, { status: 400 });
   }
-  if (toFilter) {
-    query = query.lte("starts_at", new Date(toFilter).toISOString());
+  if (toFilter && !toExclusiveIso) {
+    return NextResponse.json({ error: "Invalid to date." }, { status: 400 });
+  }
+
+  if (fromIso) {
+    query = query.gte("starts_at", fromIso);
+  }
+  if (toExclusiveIso) {
+    query = query.lt("starts_at", toExclusiveIso);
   }
 
   const { data, error } = await query;
