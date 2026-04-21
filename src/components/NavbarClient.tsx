@@ -20,6 +20,7 @@ interface NavbarClientProps {
 
 export function NavbarClient({ user, initialUnreadCount = 0 }: NavbarClientProps) {
   const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const { t } = useLanguage();
   const effectiveUnreadCount = user ? initialUnreadCount : 0;
   const canApplyDoctor = !user || user.role === "patient";
@@ -43,6 +44,20 @@ export function NavbarClient({ user, initialUnreadCount = 0 }: NavbarClientProps
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const navItems = [
+    { href: "/doctors", label: t("navDoctors"), show: true },
+    { href: "/doctor/apply", label: t("navBecomeDoctor"), show: canApplyDoctor },
+    { href: "/dashboard", label: t("navDashboard"), show: Boolean(user) },
+    { href: "/appointments", label: t("navAppointments"), show: Boolean(user) },
+    {
+      href: "/doctor/analytics",
+      label: t("navAnalytics"),
+      show: user?.role === "doctor" || user?.role === "admin",
+    },
+    { href: "/notifications", label: notificationsLabel, show: Boolean(user) },
+    { href: "/admin", label: t("navAdmin"), show: user?.role === "admin" },
+  ].filter((item) => item.show);
+
   return (
     <header
       className={`sticky top-0 z-50 transition ${
@@ -51,13 +66,13 @@ export function NavbarClient({ user, initialUnreadCount = 0 }: NavbarClientProps
           : "border-b border-slate-200/60 bg-white/80 backdrop-blur-sm"
       }`}
     >
-      <div className="mx-auto w-full max-w-6xl px-6">
-        <div className="flex items-center gap-3 py-4">
-          <Link href="/" className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-slate-900 via-slate-700 to-slate-500 text-xs font-semibold text-white shadow-sm">
+      <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
+        <div className="flex min-h-16 items-center gap-3 py-3">
+          <Link href="/" className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-slate-900 via-slate-700 to-slate-500 text-xs font-semibold text-white shadow-sm">
               CP
             </span>
-            <span className="text-lg font-semibold leading-none tracking-tight text-slate-900">
+            <span className="truncate text-base font-semibold leading-none tracking-tight text-slate-900 sm:text-lg">
               CarePoint
             </span>
           </Link>
@@ -65,73 +80,28 @@ export function NavbarClient({ user, initialUnreadCount = 0 }: NavbarClientProps
           <div className="flex-1" />
 
           <div className="ml-auto flex min-w-0 items-center gap-3">
-            <nav className="hidden min-w-0 items-center justify-end md:flex">
+            <nav className="hidden min-w-0 items-center justify-end lg:flex">
               <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-2 py-1 text-sm font-medium text-slate-700 shadow-sm">
-                <Link
-                  href="/doctors"
-                  className="rounded-full px-3 py-1 whitespace-nowrap transition hover:bg-slate-100 hover:text-slate-900"
-                >
-                  {t("navDoctors")}
-                </Link>
-                {canApplyDoctor && (
+                {navItems.map((item) => (
                   <Link
-                    href="/doctor/apply"
+                    key={item.href}
+                    href={item.href}
                     className="rounded-full px-3 py-1 whitespace-nowrap transition hover:bg-slate-100 hover:text-slate-900"
                   >
-                    {t("navBecomeDoctor")}
+                    {item.label}
                   </Link>
-                )}
-                {user && (
-                  <Link
-                    href="/dashboard"
-                    className="rounded-full px-3 py-1 whitespace-nowrap transition hover:bg-slate-100 hover:text-slate-900"
-                  >
-                    {t("navDashboard")}
-                  </Link>
-                )}
-                {user && (
-                  <Link
-                    href="/appointments"
-                    className="rounded-full px-3 py-1 whitespace-nowrap transition hover:bg-slate-100 hover:text-slate-900"
-                  >
-                    {t("navAppointments")}
-                  </Link>
-                )}
-                {(user?.role === "doctor" || user?.role === "admin") && (
-                  <Link
-                    href="/doctor/analytics"
-                    className="rounded-full px-3 py-1 whitespace-nowrap transition hover:bg-slate-100 hover:text-slate-900"
-                  >
-                    {t("navAnalytics")}
-                  </Link>
-                )}
-                {user && (
-                  <Link
-                    href="/notifications"
-                    className="rounded-full px-3 py-1 whitespace-nowrap transition hover:bg-slate-100 hover:text-slate-900"
-                  >
-                    {notificationsLabel}
-                  </Link>
-                )}
-                {user?.role === "admin" && (
-                  <Link
-                    href="/admin"
-                    className="rounded-full px-3 py-1 whitespace-nowrap transition hover:bg-slate-100 hover:text-slate-900"
-                  >
-                    {t("navAdmin")}
-                  </Link>
-                )}
+                ))}
               </div>
             </nav>
             {user ? (
               <>
                 <Link
                   href="/profile"
-                  className="flex max-w-[14rem] shrink-0 items-center gap-2 overflow-hidden rounded-full border border-slate-200/90 bg-white/95 py-1.5 pl-1.5 pr-2.5 shadow-sm transition hover:border-slate-300"
+                  className="flex max-w-[3rem] shrink-0 items-center gap-2 overflow-hidden rounded-full border border-slate-200/90 bg-white/95 py-1.5 pl-1.5 pr-1.5 shadow-sm transition hover:border-slate-300 sm:max-w-[14rem] sm:pr-2.5"
                   title={user.name || user.email || t("navAccount")}
                 >
                   <Avatar name={user.name} src={user.avatarUrl} size={32} />
-                  <span className="max-w-[9rem] truncate text-sm font-medium text-slate-700">
+                  <span className="hidden max-w-[9rem] truncate text-sm font-medium text-slate-700 sm:inline">
                     {user.name || user.email || t("navAccount")}
                   </span>
                   <span className="hidden rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600 sm:inline-flex">
@@ -141,7 +111,7 @@ export function NavbarClient({ user, initialUnreadCount = 0 }: NavbarClientProps
                 <button
                   type="button"
                   onClick={() => signOut({ callbackUrl: "/" })}
-                  className="rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:border-rose-300 hover:bg-rose-100 hover:text-rose-800"
+                  className="hidden rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:border-rose-300 hover:bg-rose-100 hover:text-rose-800 sm:inline-flex"
                 >
                   {t("profileSignOut")}
                 </button>
@@ -154,69 +124,46 @@ export function NavbarClient({ user, initialUnreadCount = 0 }: NavbarClientProps
                 {t("navSignIn")}
               </Link>
             )}
+            <button
+              type="button"
+              onClick={() => setMenuOpen((value) => !value)}
+              className="inline-flex h-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white px-3 text-xs font-semibold uppercase tracking-wide text-slate-700 shadow-sm transition hover:border-slate-300 hover:text-slate-900 lg:hidden"
+              aria-expanded={menuOpen}
+              aria-label="Toggle navigation"
+            >
+              {menuOpen ? "Close" : "Menu"}
+            </button>
           </div>
         </div>
 
-        <div className="pb-3 md:hidden">
-          <nav className="overflow-x-auto">
-            <div className="inline-flex min-w-full items-center gap-2 rounded-full border border-slate-200 bg-white/90 p-1 text-sm font-medium text-slate-700 shadow-sm">
-              <Link
-                href="/doctors"
-                className="rounded-full px-3 py-1.5 whitespace-nowrap transition hover:bg-slate-100 hover:text-slate-900"
-              >
-                {t("navDoctors")}
-              </Link>
-              {canApplyDoctor && (
-                <Link
-                  href="/doctor/apply"
-                  className="rounded-full px-3 py-1.5 whitespace-nowrap transition hover:bg-slate-100 hover:text-slate-900"
-                >
-                  {t("navBecomeDoctor")}
-                </Link>
-              )}
+        {menuOpen && (
+          <div className="pb-4 lg:hidden">
+            <div className="rounded-3xl border border-slate-200 bg-white/95 p-3 shadow-lg shadow-slate-200/70">
+              <nav className="grid grid-cols-2 gap-2 text-sm font-semibold text-slate-700">
+                {navItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMenuOpen(false)}
+                    className="rounded-2xl border border-slate-100 bg-slate-50 px-3 py-3 transition hover:border-slate-200 hover:bg-white hover:text-slate-900"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </nav>
+
               {user && (
-                <Link
-                  href="/dashboard"
-                  className="rounded-full px-3 py-1.5 whitespace-nowrap transition hover:bg-slate-100 hover:text-slate-900"
+                <button
+                  type="button"
+                  onClick={() => signOut({ callbackUrl: "/" })}
+                  className="mt-3 w-full rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 transition hover:border-rose-300 hover:bg-rose-100"
                 >
-                  {t("navDashboard")}
-                </Link>
-              )}
-              {user && (
-                <Link
-                  href="/appointments"
-                  className="rounded-full px-3 py-1.5 whitespace-nowrap transition hover:bg-slate-100 hover:text-slate-900"
-                >
-                  {t("navAppointments")}
-                </Link>
-              )}
-              {(user?.role === "doctor" || user?.role === "admin") && (
-                <Link
-                  href="/doctor/analytics"
-                  className="rounded-full px-3 py-1.5 whitespace-nowrap transition hover:bg-slate-100 hover:text-slate-900"
-                >
-                  {t("navAnalytics")}
-                </Link>
-              )}
-              {user && (
-                <Link
-                  href="/notifications"
-                  className="rounded-full px-3 py-1.5 whitespace-nowrap transition hover:bg-slate-100 hover:text-slate-900"
-                >
-                  {notificationsLabel}
-                </Link>
-              )}
-              {user?.role === "admin" && (
-                <Link
-                  href="/admin"
-                  className="rounded-full px-3 py-1.5 whitespace-nowrap transition hover:bg-slate-100 hover:text-slate-900"
-                >
-                  {t("navAdmin")}
-                </Link>
+                  {t("profileSignOut")}
+                </button>
               )}
             </div>
-          </nav>
-        </div>
+          </div>
+        )}
       </div>
     </header>
   );

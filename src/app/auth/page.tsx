@@ -63,19 +63,19 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 py-12">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 sm:px-6 lg:gap-8 lg:py-12">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           {t("authBadge")}
         </p>
-        <h1 className="text-3xl font-semibold text-slate-900">
+        <h1 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
           {t("authTitle")}
         </h1>
-        <p className="text-slate-600">{t("authSubtitle")}</p>
+        <p className="text-sm leading-relaxed text-slate-600 sm:text-base">{t("authSubtitle")}</p>
       </header>
 
       <div className="grid gap-6 md:grid-cols-[1fr_1fr]">
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <h2 className="text-lg font-semibold text-slate-900">{t("authReturningTitle")}</h2>
           <p className="mt-2 text-sm text-slate-600">{t("authReturningBody")}</p>
           <form onSubmit={handleCredentialsSignIn} className="mt-4 grid gap-4">
@@ -108,7 +108,7 @@ export default function AuthPage() {
           </form>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <h2 className="text-lg font-semibold text-slate-900">{t("authCreateTitle")}</h2>
           <p className="mt-1 text-sm text-slate-600">{t("authCreateBody")}</p>
           <form onSubmit={handleSignUp} className="mt-4 grid gap-4">
@@ -160,7 +160,7 @@ export default function AuthPage() {
         </section>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
+      <div className="rounded-3xl border border-slate-200 bg-white p-5 text-sm leading-relaxed text-slate-600 sm:p-6">
         {t("authMfaNote")}
       </div>
 

@@ -74,18 +74,18 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 bg-slate-50 px-6 py-12 text-slate-900">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 bg-slate-50 px-4 py-8 text-slate-900 sm:px-6 lg:py-12">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           {t("profileBadge")}
         </p>
-        <h1 className="text-3xl font-semibold text-slate-900">
+        <h1 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
           {t("profileTitle")}
         </h1>
-        <p className="text-slate-600">{t("profileSubtitle")}</p>
+        <p className="text-sm leading-relaxed text-slate-600 sm:text-base">{t("profileSubtitle")}</p>
       </header>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <h2 className="text-lg font-semibold text-slate-900">{t("profileAvatarTitle")}</h2>
         <p className="mt-2 text-sm text-slate-600">{t("profileAvatarSubtitle")}</p>
         <form onSubmit={uploadAvatar} className="mt-4 grid gap-4">
@@ -117,12 +117,12 @@ export default function ProfilePage() {
               setError(null);
               setFile(nextFile);
             }}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700"
           />
           <button
             type="submit"
             disabled={status === "uploading"}
-            className="w-fit rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-fit"
           >
             {status === "uploading" ? t("profileUploading") : t("profileUploadButton")}
           </button>
@@ -137,7 +137,7 @@ export default function ProfilePage() {
         </form>
       </section>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <h2 className="text-lg font-semibold text-slate-900">{t("profileSessionTitle")}</h2>
         <p className="mt-2 text-sm text-slate-600">{t("profileSessionBody")}</p>
         <div className="mt-4">

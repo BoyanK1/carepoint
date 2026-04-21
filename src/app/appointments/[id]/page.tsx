@@ -334,7 +334,7 @@ export default function AppointmentDetailPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-6xl px-6 py-12">
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-12">
         <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500">
           {t("appointmentDetailLoading")}
         </div>
@@ -344,7 +344,7 @@ export default function AppointmentDetailPage() {
 
   if (error && !appointment) {
     return (
-      <div className="mx-auto max-w-6xl px-6 py-12">
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-12">
         <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700">
           {error}
         </div>
@@ -358,7 +358,7 @@ export default function AppointmentDetailPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6 lg:gap-8 lg:py-12">
-      <header className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-slate-100 p-6 shadow-sm sm:p-8">
+      <header className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-white to-slate-100 p-5 shadow-sm sm:p-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
@@ -373,7 +373,7 @@ export default function AppointmentDetailPage() {
               {appointment.doctor?.city ? ` · ${appointment.doctor.city}` : ""}
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             {appointment.doctor && (
               <Avatar name={appointment.doctor.name} src={appointment.doctor.avatarUrl} size={48} />
             )}
@@ -447,18 +447,18 @@ export default function AppointmentDetailPage() {
                 ))
               )}
             </div>
-            <div className="mt-3 flex gap-2">
+            <div className="mt-3 grid gap-2 sm:flex">
               <input
                 value={messageText}
                 onChange={(event) => setMessageText(event.target.value.slice(0, 2000))}
                 placeholder={t("appointmentDetailChatPlaceholder")}
-                className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-400"
+                className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-400"
               />
               <button
                 type="button"
                 onClick={() => void sendMessage()}
                 disabled={sendingMessage || !messageText.trim()}
-                className="rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-full bg-slate-900 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {sendingMessage ? t("appointmentDetailChatSending") : t("appointmentDetailChatSend")}
               </button>
@@ -479,12 +479,12 @@ export default function AppointmentDetailPage() {
                   className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-300"
                 />
               </label>
-              <div className="mt-4 flex flex-wrap gap-2">
+              <div className="mt-4 grid gap-2 sm:flex sm:flex-wrap">
                 <button
                   type="button"
                   onClick={() => void handleReschedule()}
                   disabled={pendingAction === "reschedule"}
-                  className="rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-full bg-slate-900 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {pendingAction === "reschedule"
                     ? t("appointmentsPleaseWait")
@@ -494,7 +494,7 @@ export default function AppointmentDetailPage() {
                   type="button"
                   onClick={() => void handleCancel()}
                   disabled={pendingAction === "cancel"}
-                  className="rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-rose-700 transition hover:border-rose-300 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-full border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-rose-700 transition hover:border-rose-300 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {pendingAction === "cancel" ? t("appointmentsPleaseWait") : t("appointmentsCancel")}
                 </button>
@@ -511,9 +511,9 @@ export default function AppointmentDetailPage() {
             )}
 
           <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="text-lg font-semibold text-slate-900">{t("appointmentDetailFilesTitle")}</h2>
-              <label className="cursor-pointer rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-700 transition hover:border-slate-300 hover:text-slate-900">
+              <label className="cursor-pointer rounded-full border border-slate-200 px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-slate-700 transition hover:border-slate-300 hover:text-slate-900">
                 {uploadingFile ? t("appointmentDetailFilesUploading") : t("appointmentDetailFilesUpload")}
                 <input
                   type="file"
@@ -540,13 +540,13 @@ export default function AppointmentDetailPage() {
                         {new Date(file.createdAt).toLocaleDateString(locale)}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="grid w-full gap-2 sm:w-auto sm:grid-flow-col sm:items-center">
                       {file.url && (
                         <a
                           href={file.url}
                           target="_blank"
                           rel="noreferrer"
-                          className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+                          className="rounded-full border border-slate-200 px-3 py-1.5 text-center text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
                         >
                           {t("appointmentDetailFilesOpen")}
                         </a>
@@ -554,7 +554,7 @@ export default function AppointmentDetailPage() {
                       <button
                         type="button"
                         onClick={() => void deleteFile(file.id)}
-                        className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:border-rose-300"
+                        className="rounded-full border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:border-rose-300"
                       >
                         {t("appointmentDetailFilesDelete")}
                       </button>

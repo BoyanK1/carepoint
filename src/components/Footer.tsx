@@ -13,8 +13,8 @@ export function Footer() {
 
   return (
     <footer className="border-t border-slate-200 bg-gradient-to-b from-white via-white to-slate-100/70">
-      <div className="mx-auto w-full max-w-6xl px-6 pb-8 pt-14">
-        <div className="rounded-3xl border border-slate-200/80 bg-white/90 p-7 shadow-sm shadow-slate-200/60 backdrop-blur md:p-9">
+      <div className="mx-auto w-full max-w-6xl px-4 pb-8 pt-10 sm:px-6 sm:pt-14">
+        <div className="rounded-[2rem] border border-slate-200/80 bg-white/90 p-5 shadow-sm shadow-slate-200/60 backdrop-blur sm:p-7 md:p-9">
           <div className="flex flex-col gap-8">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
               <div className="space-y-4">
@@ -35,16 +35,16 @@ export function Footer() {
               </div>
               <div className="flex flex-col gap-4">
                 <LanguageToggle />
-                <div className="flex flex-wrap gap-3">
+                <div className="grid gap-3 sm:flex sm:flex-wrap">
                   <Link
                     href="/doctors"
-                    className="rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+                    className="rounded-full bg-slate-900 px-5 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-slate-800"
                   >
                     {t("footerBrowseDoctors")}
                   </Link>
                   <Link
                     href="/feedback"
-                    className="rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+                    className="rounded-full border border-slate-200 bg-white px-5 py-2.5 text-center text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
                   >
                     {t("footerSendFeedback")}
                   </Link>

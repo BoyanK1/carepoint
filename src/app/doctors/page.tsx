@@ -162,16 +162,20 @@ export default function DoctorsPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-12">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6 lg:gap-8 lg:py-12">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           {t("doctorsBadge")}
         </p>
-        <h1 className="text-3xl font-semibold text-slate-900">{t("doctorsTitle")}</h1>
-        <p className="text-slate-600">{t("doctorsSubtitle")}</p>
+        <h1 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
+          {t("doctorsTitle")}
+        </h1>
+        <p className="text-sm leading-relaxed text-slate-600 sm:text-base">
+          {t("doctorsSubtitle")}
+        </p>
       </header>
 
-      <section className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:grid-cols-4">
+      <section className="grid gap-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 md:grid-cols-4">
         <label className="grid gap-2 text-sm font-medium text-slate-700">
           {t("doctorsSearchLabel")}
           <input
@@ -218,7 +222,7 @@ export default function DoctorsPage() {
           <button
             type="button"
             onClick={() => setEmergencyOnly((value) => !value)}
-            className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide transition sm:text-sm ${
+            className={`w-full rounded-full px-4 py-2.5 text-xs font-semibold uppercase tracking-wide transition sm:w-auto sm:text-sm ${
               emergencyOnly
                 ? "bg-rose-600 text-white hover:bg-rose-500"
                 : "border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:text-slate-900"
@@ -246,14 +250,14 @@ export default function DoctorsPage() {
           filtered.map((doctor) => (
             <article
               key={doctor.id}
-              className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+              className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6"
             >
               <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                <div className="flex items-start gap-3">
+                <div className="flex min-w-0 items-start gap-3">
                   <Avatar name={doctor.name} src={doctor.avatarUrl} size={44} />
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-lg font-semibold text-slate-900">{doctor.name}</p>
-                    <p className="text-sm text-slate-600">
+                    <p className="text-sm leading-relaxed text-slate-600">
                       {doctor.specialty || t("doctorsUnknownSpecialty")} ·{" "}
                       {doctor.city || t("doctorsUnknownCity")}
                     </p>
@@ -275,11 +279,11 @@ export default function DoctorsPage() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="grid gap-2 sm:flex sm:flex-wrap sm:items-center">
                   <button
                     type="button"
                     onClick={() => void toggleFavorite(doctor)}
-                    className={`rounded-full border px-4 py-2 text-xs font-semibold transition ${
+                    className={`rounded-full border px-4 py-2.5 text-center text-xs font-semibold transition ${
                       doctor.isFavorite
                         ? "border-amber-300 bg-amber-50 text-amber-700"
                         : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
@@ -289,18 +293,18 @@ export default function DoctorsPage() {
                   </button>
                   <Link
                     href={`/doctors/${doctor.id}`}
-                    className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+                    className="rounded-full border border-slate-200 px-4 py-2.5 text-center text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
                   >
                     {t("doctorsViewProfile")}
                   </Link>
                   {session?.user?.id && session.user.id === doctor.userId ? (
-                    <span className="rounded-full border border-slate-200 bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-500">
+                    <span className="rounded-full border border-slate-200 bg-slate-100 px-4 py-2.5 text-center text-xs font-semibold text-slate-500">
                       {t("doctorsCannotBookSelf")}
                     </span>
                   ) : (
                     <Link
                       href={`/doctors/${doctor.id}`}
-                      className="rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800"
+                      className="rounded-full bg-slate-900 px-4 py-2.5 text-center text-xs font-semibold text-white transition hover:bg-slate-800"
                     >
                       {session ? t("doctorsBookNow") : t("doctorsSignInToRequest")}
                     </Link>
