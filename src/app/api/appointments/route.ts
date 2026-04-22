@@ -18,6 +18,7 @@ import { syncAppointmentReminders } from "@/lib/reminders";
 const UUID_PATTERN = /^[0-9a-fA-F-]{36}$/;
 const BOOK_WINDOW_SECONDS = 10 * 60;
 const BOOK_MAX_REQUESTS = 20;
+const MIN_BOOKING_REASON_LENGTH = 100;
 
 function getWindowEnd(day: Date, endTime: string) {
   const [hours = "0", minutes = "0", seconds = "0"] = endTime.split(":");
@@ -243,6 +244,12 @@ export async function POST(request: Request) {
 
   if (!UUID_PATTERN.test(doctorProfileId)) {
     return NextResponse.json({ error: "Invalid doctor profile ID." }, { status: 400 });
+  }
+  if (reason.length < MIN_BOOKING_REASON_LENGTH) {
+    return NextResponse.json(
+      { error: "Booking note must be at least 100 characters." },
+      { status: 400 }
+    );
   }
 
   const slotStart = new Date(startsAt);

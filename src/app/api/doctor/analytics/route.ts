@@ -17,7 +17,7 @@ function startOfWeek(date: Date) {
   return result;
 }
 
-export async function GET(request: Request) {
+export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -29,25 +29,14 @@ export async function GET(request: Request) {
   }
 
   const userProfile = await getUserProfile(session.user.id);
-  const isAdmin = userProfile?.role === "admin";
-
-  let doctorUserId = session.user.id;
-  if (isAdmin) {
-    const url = new URL(request.url);
-    const requested = url.searchParams.get("doctorUserId")?.trim();
-    if (requested) {
-      doctorUserId = requested;
-    }
-  }
-
-  if (!isAdmin && userProfile?.role !== "doctor") {
+  if (userProfile?.role !== "doctor") {
     return NextResponse.json({ error: "Doctor access required." }, { status: 403 });
   }
 
   const { data: doctorProfile, error: doctorError } = await admin
     .from("doctor_profiles")
     .select("id, user_id, specialty, city, verified")
-    .eq("user_id", doctorUserId)
+    .eq("user_id", session.user.id)
     .eq("verified", true)
     .maybeSingle();
 

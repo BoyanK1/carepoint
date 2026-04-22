@@ -52,7 +52,7 @@ export function NavbarClient({ user, initialUnreadCount = 0 }: NavbarClientProps
     {
       href: "/doctor/analytics",
       label: t("navAnalytics"),
-      show: user?.role === "doctor" || user?.role === "admin",
+      show: user?.role === "doctor",
     },
     { href: "/notifications", label: notificationsLabel, show: Boolean(user) },
     { href: "/admin", label: t("navAdmin"), show: user?.role === "admin" },

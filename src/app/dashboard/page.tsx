@@ -14,10 +14,6 @@ export default async function DashboardPage() {
   }
 
   const profile = await getUserProfile(session.user.id);
-  if (profile?.role === "admin") {
-    redirect("/admin");
-  }
-
   const displayName =
     profile?.full_name || session.user.name || session.user.email || "Account";
 

@@ -87,6 +87,11 @@ select
   now(),
   now()
 from demo_users
+where not exists (
+  select 1
+  from auth.users existing
+  where lower(existing.email) = lower(demo_users.email)
+)
 on conflict (id) do update
 set
   email = excluded.email,
@@ -126,13 +131,14 @@ with demo_users as (
 )
 insert into public.user_profiles (id, full_name, email, email_hash, role, city)
 select
-  id,
-  full_name,
+  u.id,
+  demo_users.full_name,
   null,
-  md5(lower(trim(email))),
-  role,
-  city
+  md5(lower(trim(demo_users.email))),
+  demo_users.role,
+  demo_users.city
 from demo_users
+join auth.users u on lower(u.email) = lower(demo_users.email)
 on conflict (id) do update
 set
   full_name = excluded.full_name,
@@ -160,31 +166,32 @@ with doctors as (
   select *
   from (
     values
-      ('20000000-0000-0000-0000-000000000001'::uuid, '10000000-0000-0000-0000-000000000001'::uuid, 'Кардиолог',             'София'),
-      ('20000000-0000-0000-0000-000000000002'::uuid, '10000000-0000-0000-0000-000000000002'::uuid, 'Дерматолог',           'Пловдив'),
-      ('20000000-0000-0000-0000-000000000003'::uuid, '10000000-0000-0000-0000-000000000003'::uuid, 'Невролог',             'Варна'),
-      ('20000000-0000-0000-0000-000000000004'::uuid, '10000000-0000-0000-0000-000000000004'::uuid, 'Ортопед',              'Бургас'),
-      ('20000000-0000-0000-0000-000000000005'::uuid, '10000000-0000-0000-0000-000000000005'::uuid, 'Педиатър',             'Русе'),
-      ('20000000-0000-0000-0000-000000000006'::uuid, '10000000-0000-0000-0000-000000000006'::uuid, 'УНГ специалист',       'Стара Загора'),
-      ('20000000-0000-0000-0000-000000000007'::uuid, '10000000-0000-0000-0000-000000000007'::uuid, 'Офталмолог',           'Плевен'),
-      ('20000000-0000-0000-0000-000000000008'::uuid, '10000000-0000-0000-0000-000000000008'::uuid, 'Ендокринолог',         'Велико Търново'),
-      ('20000000-0000-0000-0000-000000000009'::uuid, '10000000-0000-0000-0000-000000000009'::uuid, 'Гастроентеролог',      'Благоевград'),
-      ('20000000-0000-0000-0000-000000000010'::uuid, '10000000-0000-0000-0000-000000000010'::uuid, 'Уролог',               'Шумен'),
-      ('20000000-0000-0000-0000-000000000011'::uuid, '10000000-0000-0000-0000-000000000011'::uuid, 'Акушер-гинеколог',     'Добрич'),
-      ('20000000-0000-0000-0000-000000000012'::uuid, '10000000-0000-0000-0000-000000000012'::uuid, 'Психиатър',            'Хасково'),
-      ('20000000-0000-0000-0000-000000000013'::uuid, '10000000-0000-0000-0000-000000000013'::uuid, 'Ревматолог',           'Перник'),
-      ('20000000-0000-0000-0000-000000000014'::uuid, '10000000-0000-0000-0000-000000000014'::uuid, 'Пулмолог',             'Сливен'),
-      ('20000000-0000-0000-0000-000000000015'::uuid, '10000000-0000-0000-0000-000000000015'::uuid, 'Алерголог',            'Ямбол'),
-      ('20000000-0000-0000-0000-000000000016'::uuid, '10000000-0000-0000-0000-000000000016'::uuid, 'Хирург',               'Пазарджик'),
-      ('20000000-0000-0000-0000-000000000017'::uuid, '10000000-0000-0000-0000-000000000017'::uuid, 'Нефролог',             'Враца'),
-      ('20000000-0000-0000-0000-000000000018'::uuid, '10000000-0000-0000-0000-000000000018'::uuid, 'Инфекционист',         'Габрово'),
-      ('20000000-0000-0000-0000-000000000019'::uuid, '10000000-0000-0000-0000-000000000019'::uuid, 'Физиотерапевт',        'Казанлък'),
-      ('20000000-0000-0000-0000-000000000020'::uuid, '10000000-0000-0000-0000-000000000020'::uuid, 'Съдов хирург',         'Кърджали')
-  ) as t(id, user_id, specialty, city)
+      ('20000000-0000-0000-0000-000000000001'::uuid, 'demo.doctor.01@demo.carepoint.bg', 'Кардиолог',             'София'),
+      ('20000000-0000-0000-0000-000000000002'::uuid, 'demo.doctor.02@demo.carepoint.bg', 'Дерматолог',           'Пловдив'),
+      ('20000000-0000-0000-0000-000000000003'::uuid, 'demo.doctor.03@demo.carepoint.bg', 'Невролог',             'Варна'),
+      ('20000000-0000-0000-0000-000000000004'::uuid, 'demo.doctor.04@demo.carepoint.bg', 'Ортопед',              'Бургас'),
+      ('20000000-0000-0000-0000-000000000005'::uuid, 'demo.doctor.05@demo.carepoint.bg', 'Педиатър',             'Русе'),
+      ('20000000-0000-0000-0000-000000000006'::uuid, 'demo.doctor.06@demo.carepoint.bg', 'УНГ специалист',       'Стара Загора'),
+      ('20000000-0000-0000-0000-000000000007'::uuid, 'demo.doctor.07@demo.carepoint.bg', 'Офталмолог',           'Плевен'),
+      ('20000000-0000-0000-0000-000000000008'::uuid, 'demo.doctor.08@demo.carepoint.bg', 'Ендокринолог',         'Велико Търново'),
+      ('20000000-0000-0000-0000-000000000009'::uuid, 'demo.doctor.09@demo.carepoint.bg', 'Гастроентеролог',      'Благоевград'),
+      ('20000000-0000-0000-0000-000000000010'::uuid, 'demo.doctor.10@demo.carepoint.bg', 'Уролог',               'Шумен'),
+      ('20000000-0000-0000-0000-000000000011'::uuid, 'demo.doctor.11@demo.carepoint.bg', 'Акушер-гинеколог',     'Добрич'),
+      ('20000000-0000-0000-0000-000000000012'::uuid, 'demo.doctor.12@demo.carepoint.bg', 'Психиатър',            'Хасково'),
+      ('20000000-0000-0000-0000-000000000013'::uuid, 'demo.doctor.13@demo.carepoint.bg', 'Ревматолог',           'Перник'),
+      ('20000000-0000-0000-0000-000000000014'::uuid, 'demo.doctor.14@demo.carepoint.bg', 'Пулмолог',             'Сливен'),
+      ('20000000-0000-0000-0000-000000000015'::uuid, 'demo.doctor.15@demo.carepoint.bg', 'Алерголог',            'Ямбол'),
+      ('20000000-0000-0000-0000-000000000016'::uuid, 'demo.doctor.16@demo.carepoint.bg', 'Хирург',               'Пазарджик'),
+      ('20000000-0000-0000-0000-000000000017'::uuid, 'demo.doctor.17@demo.carepoint.bg', 'Нефролог',             'Враца'),
+      ('20000000-0000-0000-0000-000000000018'::uuid, 'demo.doctor.18@demo.carepoint.bg', 'Инфекционист',         'Габрово'),
+      ('20000000-0000-0000-0000-000000000019'::uuid, 'demo.doctor.19@demo.carepoint.bg', 'Физиотерапевт',        'Казанлък'),
+      ('20000000-0000-0000-0000-000000000020'::uuid, 'demo.doctor.20@demo.carepoint.bg', 'Съдов хирург',         'Кърджали')
+  ) as t(id, email, specialty, city)
 )
 insert into public.doctor_profiles (id, user_id, specialty, city, verified)
-select id, user_id, specialty, city, true
+select doctors.id, u.id, doctors.specialty, doctors.city, true
 from doctors
+join auth.users u on lower(u.email) = lower(doctors.email)
 on conflict (id) do update
 set
   user_id = excluded.user_id,
@@ -210,8 +217,8 @@ select
   true
 from public.doctor_profiles dp
 cross join (values (1), (2), (3), (4), (5)) as d(day_of_week)
-where dp.user_id between '10000000-0000-0000-0000-000000000001'::uuid
-                    and '10000000-0000-0000-0000-000000000020'::uuid
+where dp.id between '20000000-0000-0000-0000-000000000001'::uuid
+                and '20000000-0000-0000-0000-000000000020'::uuid
 on conflict (doctor_profile_id, day_of_week, start_time, end_time) do update
 set
   slot_minutes = excluded.slot_minutes,
@@ -222,15 +229,15 @@ with appointment_templates as (
   select *
   from (
     values
-      ('20000000-0000-0000-0000-000000000001'::uuid, '30000000-0000-0000-0000-000000000001'::uuid,  2, interval '09:00', 'scheduled', 'Годишен кардиологичен преглед',              'unpaid',   30::numeric, null::interval),
-      ('20000000-0000-0000-0000-000000000002'::uuid, '30000000-0000-0000-0000-000000000002'::uuid,  4, interval '11:00', 'confirmed', 'Контролен преглед при кожно раздразнение',    'paid',     25::numeric, interval '3 days'),
-      ('20000000-0000-0000-0000-000000000003'::uuid, '30000000-0000-0000-0000-000000000003'::uuid,  7, interval '13:30', 'scheduled', 'Консултация за чести мигрени',                'pending',  35::numeric, null::interval),
-      ('20000000-0000-0000-0000-000000000008'::uuid, '30000000-0000-0000-0000-000000000004'::uuid, 10, interval '10:30', 'scheduled', 'Проследяване на щитовидна жлеза',             'unpaid',   30::numeric, null::interval),
-      ('20000000-0000-0000-0000-000000000011'::uuid, '30000000-0000-0000-0000-000000000001'::uuid, 14, interval '15:00', 'confirmed', 'Профилактичен гинекологичен преглед',         'paid',     40::numeric, interval '12 days'),
-      ('20000000-0000-0000-0000-000000000001'::uuid, '30000000-0000-0000-0000-000000000002'::uuid, -9, interval '10:00', 'completed', 'Проследяване на кръвно налягане',             'paid',     30::numeric, interval '-10 days'),
-      ('20000000-0000-0000-0000-000000000002'::uuid, '30000000-0000-0000-0000-000000000003'::uuid,-18, interval '15:30', 'completed', 'Преглед след лечение на акне',                'paid',     25::numeric, interval '-19 days'),
-      ('20000000-0000-0000-0000-000000000003'::uuid, '30000000-0000-0000-0000-000000000004'::uuid,-28, interval '12:00', 'cancelled', 'Отменена неврологична консултация',           'refunded', 35::numeric, interval '-29 days')
-  ) as t(doctor_profile_id, patient_user_id, day_offset, slot_time, status, reason, payment_status, deposit_amount, paid_offset)
+      ('20000000-0000-0000-0000-000000000001'::uuid, 'demo.patient.01@demo.carepoint.bg',  2, interval '09:00', 'scheduled', 'Годишен кардиологичен преглед',              'unpaid',   30::numeric, null::interval),
+      ('20000000-0000-0000-0000-000000000002'::uuid, 'demo.patient.02@demo.carepoint.bg',  4, interval '11:00', 'confirmed', 'Контролен преглед при кожно раздразнение',    'paid',     25::numeric, interval '3 days'),
+      ('20000000-0000-0000-0000-000000000003'::uuid, 'demo.patient.03@demo.carepoint.bg',  7, interval '13:30', 'scheduled', 'Консултация за чести мигрени',                'pending',  35::numeric, null::interval),
+      ('20000000-0000-0000-0000-000000000008'::uuid, 'demo.patient.04@demo.carepoint.bg', 10, interval '10:30', 'scheduled', 'Проследяване на щитовидна жлеза',             'unpaid',   30::numeric, null::interval),
+      ('20000000-0000-0000-0000-000000000011'::uuid, 'demo.patient.01@demo.carepoint.bg', 14, interval '15:00', 'confirmed', 'Профилактичен гинекологичен преглед',         'paid',     40::numeric, interval '12 days'),
+      ('20000000-0000-0000-0000-000000000001'::uuid, 'demo.patient.02@demo.carepoint.bg', -9, interval '10:00', 'completed', 'Проследяване на кръвно налягане',             'paid',     30::numeric, interval '-10 days'),
+      ('20000000-0000-0000-0000-000000000002'::uuid, 'demo.patient.03@demo.carepoint.bg',-18, interval '15:30', 'completed', 'Преглед след лечение на акне',                'paid',     25::numeric, interval '-19 days'),
+      ('20000000-0000-0000-0000-000000000003'::uuid, 'demo.patient.04@demo.carepoint.bg',-28, interval '12:00', 'cancelled', 'Отменена неврологична консултация',           'refunded', 35::numeric, interval '-29 days')
+  ) as t(doctor_profile_id, patient_email, day_offset, slot_time, status, reason, payment_status, deposit_amount, paid_offset)
 )
 insert into public.appointments (
   doctor_profile_id,
@@ -246,7 +253,7 @@ insert into public.appointments (
 )
 select
   tpl.doctor_profile_id,
-  tpl.patient_user_id,
+  patient.id,
   date_trunc('day', now()) + make_interval(days => tpl.day_offset) + tpl.slot_time,
   date_trunc('day', now()) + make_interval(days => tpl.day_offset) + tpl.slot_time + interval '30 minutes',
   tpl.status,
@@ -263,11 +270,12 @@ select
     else null
   end
 from appointment_templates tpl
+join auth.users patient on lower(patient.email) = lower(tpl.patient_email)
 where not exists (
   select 1
   from public.appointments a
   where a.doctor_profile_id = tpl.doctor_profile_id
-    and a.patient_user_id = tpl.patient_user_id
+    and a.patient_user_id = patient.id
     and a.starts_at = date_trunc('day', now()) + make_interval(days => tpl.day_offset) + tpl.slot_time
 );
 
@@ -295,18 +303,38 @@ with review_templates as (
       ('20000000-0000-0000-0000-000000000017'::uuid, 4, 'Полезни насоки и добра организация.'),
       ('20000000-0000-0000-0000-000000000018'::uuid, 5, 'Обясни ясно терапията и следващите стъпки.'),
       ('20000000-0000-0000-0000-000000000019'::uuid, 5, 'Много добри упражнения и проследяване.'),
-      ('20000000-0000-0000-0000-000000000020'::uuid, 4, 'Професионално отношение и точна диагноза.')
+      ('20000000-0000-0000-0000-000000000020'::uuid, 4, 'Професионално отношение и точна диагноза.'),
+      ('20000000-0000-0000-0000-000000000001'::uuid, 4, 'Часът започна навреме и получих конкретни насоки.'),
+      ('20000000-0000-0000-0000-000000000002'::uuid, 4, 'Добра комуникация и спокойно обяснение на терапията.'),
+      ('20000000-0000-0000-0000-000000000003'::uuid, 5, 'Много внимателен подход към симптомите и изследванията.'),
+      ('20000000-0000-0000-0000-000000000004'::uuid, 4, 'Получих ясен план за възстановяване след травмата.'),
+      ('20000000-0000-0000-0000-000000000005'::uuid, 5, 'Детето беше спокойно през целия преглед.'),
+      ('20000000-0000-0000-0000-000000000006'::uuid, 5, 'Назначи точни изследвания и проблемът се изясни бързо.'),
+      ('20000000-0000-0000-0000-000000000007'::uuid, 4, 'Прегледът беше стегнат, но достатъчно подробен.'),
+      ('20000000-0000-0000-0000-000000000008'::uuid, 4, 'Обясни резултатите разбираемо и без да бърза.'),
+      ('20000000-0000-0000-0000-000000000009'::uuid, 5, 'Диетичните препоръки бяха практични и лесни за следване.'),
+      ('20000000-0000-0000-0000-000000000010'::uuid, 4, 'Отговори дискретно и професионално на всички въпроси.'),
+      ('20000000-0000-0000-0000-000000000011'::uuid, 4, 'Много внимателна консултация и добра организация.'),
+      ('20000000-0000-0000-0000-000000000012'::uuid, 5, 'Създава доверие и дава ясни следващи стъпки.'),
+      ('20000000-0000-0000-0000-000000000013'::uuid, 4, 'Помогна ми да разбера причината за болките.'),
+      ('20000000-0000-0000-0000-000000000014'::uuid, 5, 'Много точна диагностика и спокойно отношение.'),
+      ('20000000-0000-0000-0000-000000000015'::uuid, 4, 'След препоръките симптомите намаляха значително.'),
+      ('20000000-0000-0000-0000-000000000016'::uuid, 4, 'Прегледът беше детайлен и без излишно чакане.'),
+      ('20000000-0000-0000-0000-000000000017'::uuid, 5, 'Получих полезни обяснения за изследванията.'),
+      ('20000000-0000-0000-0000-000000000018'::uuid, 4, 'Много добра комуникация и ясен терапевтичен план.'),
+      ('20000000-0000-0000-0000-000000000019'::uuid, 4, 'Упражненията бяха обяснени лесно и работят добре.'),
+      ('20000000-0000-0000-0000-000000000020'::uuid, 5, 'Внимателен специалист с ясни препоръки за контрол.')
   ) as t(doctor_profile_id, rating, comment)
 ),
 reviewers as (
   select *
   from (
     values
-      (1, '30000000-0000-0000-0000-000000000001'::uuid),
-      (2, '30000000-0000-0000-0000-000000000002'::uuid),
-      (3, '30000000-0000-0000-0000-000000000003'::uuid),
-      (4, '30000000-0000-0000-0000-000000000004'::uuid)
-  ) as t(rn, reviewer_id)
+      (1, 'demo.patient.01@demo.carepoint.bg'),
+      (2, 'demo.patient.02@demo.carepoint.bg'),
+      (3, 'demo.patient.03@demo.carepoint.bg'),
+      (4, 'demo.patient.04@demo.carepoint.bg')
+  ) as t(rn, reviewer_email)
 )
 insert into public.doctor_reviews (
   doctor_profile_id,
@@ -318,7 +346,7 @@ insert into public.doctor_reviews (
 )
 select
   rt.doctor_profile_id,
-  reviewers.reviewer_id,
+  reviewer_user.id,
   rt.rating,
   rt.comment,
   false,
@@ -330,6 +358,7 @@ from (
   from review_templates
 ) rt
 join reviewers on reviewers.rn = rt.reviewer_rn
+join auth.users reviewer_user on lower(reviewer_user.email) = lower(reviewers.reviewer_email)
 on conflict (doctor_profile_id, reviewer_id) do update
 set
   rating = excluded.rating,
@@ -339,12 +368,13 @@ set
 
 -- 7) Favorites and notifications for patient demo accounts.
 insert into public.favorite_doctors (user_id, doctor_profile_id)
-select pu.user_id, d.doctor_profile_id
+select favorite_user.id, d.doctor_profile_id
 from (
   values
-    ('30000000-0000-0000-0000-000000000001'::uuid),
-    ('30000000-0000-0000-0000-000000000002'::uuid)
-) as pu(user_id)
+    ('demo.patient.01@demo.carepoint.bg'),
+    ('demo.patient.02@demo.carepoint.bg')
+) as pu(user_email)
+join auth.users favorite_user on lower(favorite_user.email) = lower(pu.user_email)
 cross join (
   values
     ('20000000-0000-0000-0000-000000000001'::uuid),
@@ -354,18 +384,19 @@ cross join (
 on conflict (user_id, doctor_profile_id) do nothing;
 
 insert into public.notifications (user_id, category, title, message, is_read)
-select *
+select notification_user.id, n.category, n.title, n.message, n.is_read
 from (
   values
-    ('30000000-0000-0000-0000-000000000001'::uuid, 'appointment',        'Готова демо резервация', 'Имате предстоящи, завършени и отменени прегледи за презентацията.', false),
-    ('30000000-0000-0000-0000-000000000002'::uuid, 'appointment',        'Потвърден час',          'Вашият дерматологичен преглед е потвърден.', false),
-    ('10000000-0000-0000-0000-000000000001'::uuid, 'appointment',        'Нов пациент',            'Имате нова кардиологична консултация в графика.', false),
-    ('10000000-0000-0000-0000-000000000003'::uuid, 'doctor-application', 'Профилът е видим',       'Вашият лекарски профил е потвърден и се показва в търсенето.', true)
-) as n(user_id, category, title, message, is_read)
+    ('demo.patient.01@demo.carepoint.bg', 'appointment',        'Готова демо резервация', 'Имате предстоящи, завършени и отменени прегледи за презентацията.', false),
+    ('demo.patient.02@demo.carepoint.bg', 'appointment',        'Потвърден час',          'Вашият дерматологичен преглед е потвърден.', false),
+    ('demo.doctor.01@demo.carepoint.bg',  'appointment',        'Нов пациент',            'Имате нова кардиологична консултация в графика.', false),
+    ('demo.doctor.03@demo.carepoint.bg',  'doctor-application', 'Профилът е видим',       'Вашият лекарски профил е потвърден и се показва в търсенето.', true)
+) as n(user_email, category, title, message, is_read)
+join auth.users notification_user on lower(notification_user.email) = lower(n.user_email)
 where not exists (
   select 1
   from public.notifications existing
-  where existing.user_id = n.user_id
+  where existing.user_id = notification_user.id
     and existing.title = n.title
 );
 

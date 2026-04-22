@@ -40,6 +40,8 @@ interface DoctorDetail {
   isFavorite: boolean;
 }
 
+const MIN_BOOKING_NOTE_LENGTH = 100;
+
 function stars(value: number) {
   return "★".repeat(value) + "☆".repeat(5 - value);
 }
@@ -65,6 +67,8 @@ export default function DoctorDetailPage() {
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [pendingSlot, setPendingSlot] = useState<string | null>(null);
   const isSelfDoctor = Boolean(session?.user?.id && doctor?.userId && session.user.id === doctor.userId);
+  const trimmedReasonLength = reason.trim().length;
+  const canBookWithNote = trimmedReasonLength >= MIN_BOOKING_NOTE_LENGTH;
 
   const loadDoctor = useCallback(async () => {
     if (!doctorId) {
@@ -155,6 +159,10 @@ export default function DoctorDetailPage() {
     }
     if (session.user.id === doctor.userId) {
       setBookingError(t("doctorDetailBookYourselfError"));
+      return;
+    }
+    if (!canBookWithNote) {
+      setBookingError(t("doctorDetailBookingNoteError"));
       return;
     }
 
@@ -308,6 +316,16 @@ export default function DoctorDetailPage() {
               className="min-h-20 rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-slate-400 focus:outline-none"
               placeholder={t("doctorDetailReasonPlaceholder")}
             />
+            <span
+              className={`text-xs ${
+                canBookWithNote ? "text-emerald-700" : "text-slate-500"
+              }`}
+            >
+              {t("doctorDetailBookingNoteHint").replace(
+                "{count}",
+                String(trimmedReasonLength)
+              )}
+            </span>
           </label>
 
           <div className="mt-5 space-y-4">
@@ -330,7 +348,7 @@ export default function DoctorDetailPage() {
                         key={slot.startsAt}
                         type="button"
                         onClick={() => void bookSlot(slot)}
-                        disabled={pendingSlot === slot.startsAt || isSelfDoctor}
+                        disabled={pendingSlot === slot.startsAt || isSelfDoctor || !canBookWithNote}
                         className="rounded-full border border-slate-200 bg-white px-3 py-2.5 text-xs font-semibold text-slate-700 transition hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {pendingSlot === slot.startsAt
