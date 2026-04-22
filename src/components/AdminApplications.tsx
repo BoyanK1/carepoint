@@ -34,26 +34,30 @@ export function AdminApplications({ applications }: AdminApplicationsProps) {
       return;
     }
 
-    const response = await fetch(`/api/admin/applications/${id}/${action}`, {
-      method: "POST",
-    });
+    try {
+      const response = await fetch(`/api/admin/applications/${id}/${action}`, {
+        method: "POST",
+      });
 
-    if (!response.ok) {
-      const payload = await response.json().catch(() => null);
-      if (response.status === 401 && payload?.error === "MFA verification required.") {
-        router.push("/mfa?next=/admin");
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        if (response.status === 401 && payload?.error === "MFA verification required.") {
+          router.push("/mfa?next=/admin");
+          return;
+        }
+        setError(payload?.error || t("adminActionFailed"));
         return;
       }
-      setError(payload?.error || t("adminActionFailed"));
-      return;
-    }
 
-    setItems((prev) => prev.filter((item) => item.id !== id));
+      setItems((prev) => prev.filter((item) => item.id !== id));
+    } catch {
+      setError(t("adminActionFailed"));
+    }
   };
 
   if (validItems.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-sm text-slate-500">
+      <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-5 text-sm text-slate-500 sm:p-6">
         {t("adminNoApps")}
       </div>
     );
@@ -64,15 +68,15 @@ export function AdminApplications({ applications }: AdminApplicationsProps) {
       {validItems.map((application) => (
         <div
           key={application.id}
-          className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+          className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
         >
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
+            <div className="min-w-0">
               <p className="text-sm font-semibold text-slate-900">
                 {application.specialty || t("adminUnknownSpecialty")} ·{" "}
                 {application.city || t("adminUnknownCity")}
               </p>
-              <p className="text-xs text-slate-500">
+              <p className="break-words text-xs text-slate-500">
                 {t("adminApplicantId")} {application.user_id ?? t("commonNotAvailable")}
               </p>
               {application.license_url && (
@@ -86,18 +90,18 @@ export function AdminApplications({ applications }: AdminApplicationsProps) {
                 </a>
               )}
             </div>
-            <div className="flex gap-2">
+            <div className="grid gap-2 sm:flex">
               <button
                 type="button"
                 onClick={() => updateStatus(application.id, "approve")}
-                className="rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-500"
+                className="rounded-full bg-emerald-600 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-emerald-500"
               >
                 {t("adminApprove")}
               </button>
               <button
                 type="button"
                 onClick={() => updateStatus(application.id, "reject")}
-                className="rounded-full border border-rose-200 px-4 py-2 text-xs font-semibold text-rose-600 transition hover:border-rose-300"
+                className="rounded-full border border-rose-200 px-4 py-2.5 text-xs font-semibold text-rose-600 transition hover:border-rose-300"
               >
                 {t("adminReject")}
               </button>

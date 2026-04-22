@@ -68,6 +68,7 @@ export default function DoctorAnalyticsPage() {
     }
 
     if (status === "authenticated") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       void loadAnalytics();
     }
   }, [status, router, loadAnalytics]);

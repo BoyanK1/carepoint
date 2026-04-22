@@ -58,6 +58,7 @@ export default function DoctorsPage() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [currentTime] = useState(() => Date.now());
 
   const loadDoctors = useCallback(async () => {
     setLoading(true);
@@ -82,6 +83,7 @@ export default function DoctorsPage() {
   }, [t]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadDoctors();
   }, [loadDoctors]);
 
@@ -103,7 +105,7 @@ export default function DoctorsPage() {
     const search = normalize(query);
     const specialtyFilter = normalize(specialty);
     const cityFilter = normalize(city);
-    const emergencyCutoff = Date.now() + 24 * 60 * 60 * 1000;
+    const emergencyCutoff = currentTime + 24 * 60 * 60 * 1000;
 
     const result = preparedDoctors.filter((doctor) => {
       const matchesSearch =
@@ -137,7 +139,7 @@ export default function DoctorsPage() {
       }
       return a.name.localeCompare(b.name);
     });
-  }, [city, emergencyOnly, preparedDoctors, query, sort, specialty]);
+  }, [city, currentTime, emergencyOnly, preparedDoctors, query, sort, specialty]);
 
   async function toggleFavorite(doctor: Doctor) {
     if (!session) {
@@ -145,20 +147,24 @@ export default function DoctorsPage() {
       return;
     }
 
-    const method = doctor.isFavorite ? "DELETE" : "POST";
-    const response = await fetch(`/api/doctors/${doctor.id}/favorite`, {
-      method,
-    });
+    try {
+      const method = doctor.isFavorite ? "DELETE" : "POST";
+      const response = await fetch(`/api/doctors/${doctor.id}/favorite`, {
+        method,
+      });
 
-    if (!response.ok) {
+      if (!response.ok) {
+        return;
+      }
+
+      setDoctors((current) =>
+        current.map((item) =>
+          item.id === doctor.id ? { ...item, isFavorite: !item.isFavorite } : item
+        )
+      );
+    } catch {
       return;
     }
-
-    setDoctors((current) =>
-      current.map((item) =>
-        item.id === doctor.id ? { ...item, isFavorite: !item.isFavorite } : item
-      )
-    );
   }
 
   return (

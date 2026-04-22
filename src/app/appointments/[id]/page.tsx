@@ -200,6 +200,7 @@ export default function AppointmentDetailPage() {
     }
 
     if (status === "authenticated" && appointmentId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       void loadAll();
     }
   }, [status, router, appointmentId, loadAll]);
@@ -228,19 +229,23 @@ export default function AppointmentDetailPage() {
     }
     setPendingAction("cancel");
     setError(null);
-    const response = await fetch(`/api/appointments/${appointment.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "cancel" }),
-    });
-    const payload = await response.json().catch(() => null);
-    if (!response.ok) {
-      setError(payload?.error || t("appointmentsUpdateError"));
+    try {
+      const response = await fetch(`/api/appointments/${appointment.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "cancel" }),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        setError(payload?.error || t("appointmentsUpdateError"));
+        return;
+      }
+      await loadAll();
+    } catch {
+      setError(t("appointmentsUpdateError"));
+    } finally {
       setPendingAction(null);
-      return;
     }
-    setPendingAction(null);
-    await loadAll();
   }
 
   async function handleReschedule() {
@@ -256,19 +261,23 @@ export default function AppointmentDetailPage() {
 
     setPendingAction("reschedule");
     setError(null);
-    const response = await fetch(`/api/appointments/${appointment.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "reschedule", startsAt: nextStart.toISOString() }),
-    });
-    const payload = await response.json().catch(() => null);
-    if (!response.ok) {
-      setError(payload?.error || t("appointmentsUpdateError"));
+    try {
+      const response = await fetch(`/api/appointments/${appointment.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reschedule", startsAt: nextStart.toISOString() }),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        setError(payload?.error || t("appointmentsUpdateError"));
+        return;
+      }
+      await loadAll();
+    } catch {
+      setError(t("appointmentsUpdateError"));
+    } finally {
       setPendingAction(null);
-      return;
     }
-    setPendingAction(null);
-    await loadAll();
   }
 
   async function sendMessage() {
@@ -277,20 +286,24 @@ export default function AppointmentDetailPage() {
     }
     setSendingMessage(true);
     setError(null);
-    const response = await fetch(`/api/appointments/${appointmentId}/messages`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: messageText }),
-    });
-    const payload = await response.json().catch(() => null);
-    if (!response.ok) {
-      setError(payload?.error || t("appointmentDetailMessagesSendError"));
+    try {
+      const response = await fetch(`/api/appointments/${appointmentId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: messageText }),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        setError(payload?.error || t("appointmentDetailMessagesSendError"));
+        return;
+      }
+      setMessageText("");
+      await loadMessages();
+    } catch {
+      setError(t("appointmentDetailMessagesSendError"));
+    } finally {
       setSendingMessage(false);
-      return;
     }
-    setMessageText("");
-    setSendingMessage(false);
-    await loadMessages();
   }
 
   async function uploadFile(event: React.ChangeEvent<HTMLInputElement>) {
@@ -305,31 +318,39 @@ export default function AppointmentDetailPage() {
     const formData = new FormData();
     formData.append("file", file);
 
-    const response = await fetch(`/api/appointments/${appointmentId}/files`, {
-      method: "POST",
-      body: formData,
-    });
-    const payload = await response.json().catch(() => null);
-    if (!response.ok) {
-      setError(payload?.error || t("appointmentDetailFilesUploadError"));
+    try {
+      const response = await fetch(`/api/appointments/${appointmentId}/files`, {
+        method: "POST",
+        body: formData,
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        setError(payload?.error || t("appointmentDetailFilesUploadError"));
+        return;
+      }
+      await loadFiles();
+    } catch {
+      setError(t("appointmentDetailFilesUploadError"));
+    } finally {
       setUploadingFile(false);
-      return;
     }
-    setUploadingFile(false);
-    await loadFiles();
   }
 
   async function deleteFile(fileId: string) {
-    const response = await fetch(
-      `/api/appointments/${appointmentId}/files?fileId=${encodeURIComponent(fileId)}`,
-      { method: "DELETE" }
-    );
-    const payload = await response.json().catch(() => null);
-    if (!response.ok) {
-      setError(payload?.error || t("appointmentDetailFilesDeleteError"));
-      return;
+    try {
+      const response = await fetch(
+        `/api/appointments/${appointmentId}/files?fileId=${encodeURIComponent(fileId)}`,
+        { method: "DELETE" }
+      );
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        setError(payload?.error || t("appointmentDetailFilesDeleteError"));
+        return;
+      }
+      await loadFiles();
+    } catch {
+      setError(t("appointmentDetailFilesDeleteError"));
     }
-    await loadFiles();
   }
 
   if (loading) {

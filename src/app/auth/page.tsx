@@ -22,14 +22,18 @@ export default function AuthPage() {
     setError(null);
     setMessage(null);
 
-    const result = await signIn("credentials", {
-      email: signInEmail,
-      password: signInPassword,
-      redirect: true,
-      callbackUrl: "/dashboard",
-    });
+    try {
+      const result = await signIn("credentials", {
+        email: signInEmail,
+        password: signInPassword,
+        redirect: true,
+        callbackUrl: "/dashboard",
+      });
 
-    if (result?.error) {
+      if (result?.error) {
+        setError(t("authInvalidCredentials"));
+      }
+    } catch {
       setError(t("authInvalidCredentials"));
     }
   };
@@ -101,7 +105,7 @@ export default function AuthPage() {
             </label>
             <button
               type="submit"
-              className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+              className="rounded-full bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
             >
               {t("authSignIn")}
             </button>
@@ -152,7 +156,7 @@ export default function AuthPage() {
             </label>
             <button
               type="submit"
-              className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+              className="rounded-full bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
             >
               {t("authCreateButton")}
             </button>

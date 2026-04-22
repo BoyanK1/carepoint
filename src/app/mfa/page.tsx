@@ -86,6 +86,7 @@ export default function MfaPage() {
 
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <button
+          type="button"
           onClick={startChallenge}
           disabled={status === "sending"}
           className={`rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70 ${
@@ -112,6 +113,7 @@ export default function MfaPage() {
             />
           </label>
           <button
+            type="button"
             onClick={verifyCode}
             disabled={code.length !== 6 || status === "verifying"}
             className="rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"

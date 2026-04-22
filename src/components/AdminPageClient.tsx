@@ -63,18 +63,20 @@ export function AdminPageClient({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-12">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 sm:px-6 lg:py-12">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           {t("adminBadge")}
         </p>
-        <h1 className="text-3xl font-semibold text-slate-900">{t("adminTitle")}</h1>
-        <p className="text-slate-600">{t("adminSubtitle")}</p>
+        <h1 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
+          {t("adminTitle")}
+        </h1>
+        <p className="text-sm leading-relaxed text-slate-600 sm:text-base">{t("adminSubtitle")}</p>
       </header>
 
       <AdminApplications applications={applications} />
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <div className="mb-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             {t("adminAuditBadge")}

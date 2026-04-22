@@ -113,6 +113,7 @@ export default function AppointmentsPage() {
       return;
     }
     if (status === "authenticated") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       void loadAppointments();
     }
   }, [status, router, loadAppointments]);
@@ -260,7 +261,7 @@ export default function AppointmentsPage() {
       )}
 
       <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
           {filters.map((option) => {
             const isActive = filter === option;
             return (
@@ -268,7 +269,7 @@ export default function AppointmentsPage() {
                 key={option}
                 type="button"
                 onClick={() => setFilter(option)}
-                className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide transition sm:text-sm ${
+                className={`rounded-full px-4 py-2.5 text-xs font-semibold uppercase tracking-wide transition sm:text-sm ${
                   isActive
                     ? "bg-slate-900 text-white"
                     : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"
@@ -321,7 +322,7 @@ export default function AppointmentsPage() {
                     <p className="text-sm text-slate-500">{appointment.reason || t("appointmentsNoNote")}</p>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     {appointment.doctor && (
                       <Avatar
                         name={appointment.doctor.name}
@@ -333,7 +334,7 @@ export default function AppointmentsPage() {
                       <button
                         type="button"
                         onClick={() => void toggleFavorite(appointment)}
-                        className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+                        className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
                       >
                         {appointment.doctor.isFavorite
                           ? t("appointmentsUnfavorite")
@@ -344,10 +345,10 @@ export default function AppointmentsPage() {
                 </div>
 
                 <div className="mt-5 grid gap-3">
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="grid gap-2 sm:flex sm:flex-wrap sm:items-center">
                     <Link
                       href={`/appointments/${appointment.id}`}
-                      className="rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800"
+                      className="rounded-full bg-slate-900 px-3 py-2.5 text-center text-xs font-semibold text-white transition hover:bg-slate-800"
                     >
                       {t("appointmentsDetails")}
                     </Link>
@@ -357,7 +358,7 @@ export default function AppointmentsPage() {
                           ? `/doctors/${appointment.doctor.id}?rebook=1`
                           : "/doctors"
                       }
-                      className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+                      className="rounded-full border border-slate-200 px-3 py-2.5 text-center text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
                     >
                       {t("appointmentsQuickRebook")}
                     </Link>
@@ -380,12 +381,12 @@ export default function AppointmentsPage() {
                         />
                       </label>
 
-                      <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                      <div className="grid gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-end">
                         <button
                           type="button"
                           onClick={() => void updateAppointment(appointment.id, "cancel")}
                           disabled={pendingId === appointment.id}
-                          className="rounded-full border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:border-rose-300 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="rounded-full border border-rose-200 bg-white px-3 py-2.5 text-xs font-semibold text-rose-700 transition hover:border-rose-300 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           {pendingId === appointment.id
                             ? t("appointmentsPleaseWait")
@@ -395,7 +396,7 @@ export default function AppointmentsPage() {
                           type="button"
                           onClick={() => void updateAppointment(appointment.id, "reschedule")}
                           disabled={pendingId === appointment.id}
-                          className="rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="rounded-full bg-slate-900 px-3 py-2.5 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           {t("appointmentsReschedule")}
                         </button>

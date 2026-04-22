@@ -6,7 +6,7 @@ export function LanguageToggle() {
   const { lang, setLang, t } = useLanguage();
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex flex-wrap items-center gap-3">
       <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
         {t("footerLanguage")}
       </span>
@@ -14,7 +14,7 @@ export function LanguageToggle() {
         <button
           type="button"
           onClick={() => setLang("en")}
-          className={`rounded-full px-3 py-1 transition ${
+          className={`rounded-full px-3 py-1.5 transition ${
             lang === "en"
               ? "bg-slate-900 text-white"
               : "hover:bg-slate-100"
@@ -25,7 +25,7 @@ export function LanguageToggle() {
         <button
           type="button"
           onClick={() => setLang("bg")}
-          className={`rounded-full px-3 py-1 transition ${
+          className={`rounded-full px-3 py-1.5 transition ${
             lang === "bg"
               ? "bg-slate-900 text-white"
               : "hover:bg-slate-100"

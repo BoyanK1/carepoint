@@ -57,6 +57,7 @@ export default function NotificationsPage() {
       return;
     }
     if (status === "authenticated") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       void loadNotifications();
     }
   }, [status, router, loadNotifications]);

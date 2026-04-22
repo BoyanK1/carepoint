@@ -112,6 +112,7 @@ export default function HistoryPage() {
       return;
     }
     if (status === "authenticated") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       void loadHistory();
     }
   }, [status, router, loadHistory]);

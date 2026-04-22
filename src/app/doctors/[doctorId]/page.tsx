@@ -94,6 +94,7 @@ export default function DoctorDetailPage() {
   }, [doctorId, t]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadDoctor();
   }, [loadDoctor]);
 
@@ -224,7 +225,7 @@ export default function DoctorDetailPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-5xl px-6 py-12">
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:py-12">
         <div className="rounded-2xl border border-slate-200 bg-white p-6 text-slate-500">
           {t("doctorDetailLoading")}
         </div>
@@ -250,14 +251,16 @@ export default function DoctorDetailPage() {
       : t("doctorDetailNoRating");
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-12">
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 sm:px-6 lg:py-12">
+      <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div className="flex items-start gap-4">
+          <div className="flex min-w-0 items-start gap-4">
             <Avatar name={doctor.name} src={doctor.avatarUrl} size={56} />
-            <div>
-              <h1 className="text-3xl font-semibold text-slate-900">{doctor.name}</h1>
-              <p className="text-slate-600">
+            <div className="min-w-0">
+              <h1 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
+                {doctor.name}
+              </h1>
+              <p className="text-sm leading-relaxed text-slate-600 sm:text-base">
                 {doctor.specialty || t("doctorDetailGeneralSpecialty")} · {doctor.city || t("commonNotAvailable")}
               </p>
               <p className="mt-1 text-sm text-slate-500">{ratingSummary}</p>
@@ -269,11 +272,11 @@ export default function DoctorDetailPage() {
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="grid gap-2 sm:flex">
             <button
               type="button"
               onClick={() => void toggleFavorite()}
-              className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+              className={`rounded-full border px-4 py-2.5 text-sm font-semibold transition ${
                 doctor.isFavorite
                   ? "border-amber-300 bg-amber-50 text-amber-700"
                   : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
@@ -284,7 +287,7 @@ export default function DoctorDetailPage() {
             <button
               type="button"
               onClick={() => router.push("/appointments")}
-              className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300"
+              className="rounded-full border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300"
             >
               {t("doctorDetailMyAppointments")}
             </button>
@@ -293,7 +296,7 @@ export default function DoctorDetailPage() {
       </section>
 
       <section className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <h2 className="text-xl font-semibold text-slate-900">{t("doctorDetailScheduleTitle")}</h2>
           <p className="mt-1 text-sm text-slate-600">{t("doctorDetailScheduleSubtitle")}</p>
 
@@ -321,14 +324,14 @@ export default function DoctorDetailPage() {
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                     {group.dayLabel}
                   </p>
-                  <div className="mt-2 flex flex-wrap gap-2">
+                  <div className="mt-2 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                     {group.slots.slice(0, 8).map((slot) => (
                       <button
                         key={slot.startsAt}
                         type="button"
                         onClick={() => void bookSlot(slot)}
                         disabled={pendingSlot === slot.startsAt || isSelfDoctor}
-                        className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="rounded-full border border-slate-200 bg-white px-3 py-2.5 text-xs font-semibold text-slate-700 transition hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {pendingSlot === slot.startsAt
                           ? t("doctorDetailBooking")
@@ -348,7 +351,7 @@ export default function DoctorDetailPage() {
           {bookingError && <p className="mt-4 text-sm text-rose-600">{bookingError}</p>}
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <h2 className="text-xl font-semibold text-slate-900">{t("doctorDetailReviewsBreakdown")}</h2>
           <div className="mt-4 space-y-2">
             {doctor.ratingBreakdown.map((item) => {
@@ -397,7 +400,7 @@ export default function DoctorDetailPage() {
             <button
               type="button"
               onClick={() => void submitReview()}
-              className="mt-3 rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800"
+              className="mt-3 w-full rounded-full bg-slate-900 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-slate-800 sm:w-auto"
             >
               {t("doctorDetailSubmitReview")}
             </button>
@@ -407,7 +410,7 @@ export default function DoctorDetailPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <h2 className="text-xl font-semibold text-slate-900">{t("doctorDetailPatientReviews")}</h2>
         <div className="mt-4 space-y-3">
           {doctor.reviews.length === 0 ? (

@@ -50,20 +50,20 @@ export default function DoctorApplyPage() {
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 sm:px-6 lg:py-12">
       <header className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           {t("applyBadge")}
         </p>
-        <h1 className="text-3xl font-semibold text-slate-900">
+        <h1 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
           {t("applyTitle")}
         </h1>
-        <p className="text-slate-600">{t("applySubtitle")}</p>
+        <p className="text-sm leading-relaxed text-slate-600 sm:text-base">{t("applySubtitle")}</p>
       </header>
 
       <form
         onSubmit={handleSubmit}
-        className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+        className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
       >
         <div className="grid gap-4 md:grid-cols-2">
           <label className="grid gap-2 text-sm font-medium text-slate-700">
@@ -93,16 +93,16 @@ export default function DoctorApplyPage() {
             type="file"
             accept="application/pdf,image/*"
             onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-slate-400 focus:outline-none"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-slate-400 focus:outline-none"
             required
           />
         </label>
 
-        <div className="mt-6 flex items-center gap-3">
+        <div className="mt-6 grid gap-3 sm:flex sm:items-center">
           <button
             type="submit"
             disabled={status === "sending"}
-            className="rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {status === "sending" ? t("applySubmitting") : t("applySubmit")}
           </button>

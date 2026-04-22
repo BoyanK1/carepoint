@@ -129,7 +129,7 @@ export function NavbarClient({ user, initialUnreadCount = 0 }: NavbarClientProps
               onClick={() => setMenuOpen((value) => !value)}
               className="inline-flex h-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white px-3 text-xs font-semibold uppercase tracking-wide text-slate-700 shadow-sm transition hover:border-slate-300 hover:text-slate-900 lg:hidden"
               aria-expanded={menuOpen}
-              aria-label="Toggle navigation"
+              aria-label={menuOpen ? "Close menu" : "Menu"}
             >
               {menuOpen ? "Close" : "Menu"}
             </button>
