@@ -15,6 +15,7 @@ import { getClientIdentifier, hasTrustedOrigin } from "@/lib/security/request-gu
 import { getAuthUserEmail } from "@/lib/supabase/auth-users";
 import { syncAppointmentReminders } from "@/lib/reminders";
 import { resolveAppointmentAccess } from "@/lib/appointment-access";
+import { encryptSensitiveText } from "@/lib/security/encryption";
 
 const UUID_PATTERN = /^[0-9a-fA-F-]{36}$/;
 const EDIT_WINDOW_SECONDS = 10 * 60;
@@ -292,7 +293,9 @@ export async function PATCH(
       appointment_id: id,
       actor_user_id: session.user.id,
       event_type: "cancelled",
-      event_note: access.isDoctor ? "Cancelled by doctor" : "Cancelled by patient",
+      event_note: encryptSensitiveText(
+        access.isDoctor ? "Cancelled by doctor" : "Cancelled by patient"
+      ),
     });
 
     await syncAppointmentReminders(admin, id, appointment.starts_at, "cancelled");
@@ -474,7 +477,9 @@ export async function PATCH(
     appointment_id: id,
     actor_user_id: session.user.id,
     event_type: "rescheduled",
-    event_note: `Rescheduled from ${appointment.starts_at} to ${nextStart.toISOString()}`,
+    event_note: encryptSensitiveText(
+      `Rescheduled from ${appointment.starts_at} to ${nextStart.toISOString()}`
+    ),
   });
 
   await syncAppointmentReminders(

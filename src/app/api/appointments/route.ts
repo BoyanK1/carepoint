@@ -14,6 +14,7 @@ import { consumeRateLimit } from "@/lib/security/rate-limit";
 import { getClientIdentifier, hasTrustedOrigin } from "@/lib/security/request-guard";
 import { getAuthUserEmail } from "@/lib/supabase/auth-users";
 import { syncAppointmentReminders } from "@/lib/reminders";
+import { decryptSensitiveText, encryptSensitiveText } from "@/lib/security/encryption";
 
 const UUID_PATTERN = /^[0-9a-fA-F-]{36}$/;
 const BOOK_WINDOW_SECONDS = 10 * 60;
@@ -217,7 +218,7 @@ export async function GET() {
           status: row.status,
           canceledAt: row.canceled_at,
         }),
-        reason: row.reason,
+        reason: decryptSensitiveText(row.reason),
         createdAt: row.created_at,
         canceledAt: row.canceled_at,
         rescheduledFrom: row.rescheduled_from,
@@ -292,6 +293,7 @@ export async function POST(request: Request) {
   const doctorProfileId = String(body?.doctorProfileId ?? "").trim();
   const startsAt = String(body?.startsAt ?? "").trim();
   const reason = String(body?.reason ?? "").trim().slice(0, 500);
+  const encryptedReason = encryptSensitiveText(reason);
 
   if (!UUID_PATTERN.test(doctorProfileId)) {
     return NextResponse.json({ error: "Invalid doctor profile ID." }, { status: 400 });
@@ -399,7 +401,7 @@ export async function POST(request: Request) {
       starts_at: slotStart.toISOString(),
       ends_at: slotEnd.toISOString(),
       status: "scheduled",
-      reason: reason || null,
+      reason: encryptedReason,
       payment_status: "unpaid",
       deposit_amount: 0,
     })
@@ -420,7 +422,7 @@ export async function POST(request: Request) {
     appointment_id: appointment.id,
     actor_user_id: session.user.id,
     event_type: "booked",
-    event_note: reason || null,
+    event_note: encryptSensitiveText(reason),
   });
 
   await syncAppointmentReminders(

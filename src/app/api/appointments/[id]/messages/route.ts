@@ -7,10 +7,12 @@ import { resolveAppointmentAccess } from "@/lib/appointment-access";
 import { consumeRateLimit } from "@/lib/security/rate-limit";
 import { getClientIdentifier, hasTrustedOrigin } from "@/lib/security/request-guard";
 import { createNotification } from "@/lib/notifications";
+import { decryptSensitiveText, encryptSensitiveText } from "@/lib/security/encryption";
 
 const UUID_PATTERN = /^[0-9a-fA-F-]{36}$/;
 const CHAT_WINDOW_SECONDS = 10 * 60;
 const CHAT_MAX_REQUESTS = 60;
+const CHAT_MAX_MESSAGE_LENGTH = 1000;
 
 export async function GET(
   _request: Request,
@@ -77,7 +79,7 @@ export async function GET(
       id: item.id,
       senderUserId: item.sender_user_id,
       senderName: senderMap.get(item.sender_user_id) || "User",
-      message: item.message,
+      message: decryptSensitiveText(item.message) ?? "",
       createdAt: item.created_at,
       mine: item.sender_user_id === session.user.id,
     })),
@@ -123,9 +125,9 @@ export async function POST(
   const body = await request.json().catch(() => null);
   const message = String(body?.message ?? "").trim();
 
-  if (message.length < 1 || message.length > 2000) {
+  if (message.length < 1 || message.length > CHAT_MAX_MESSAGE_LENGTH) {
     return NextResponse.json(
-      { error: "Message must be between 1 and 2000 characters." },
+      { error: `Message must be between 1 and ${CHAT_MAX_MESSAGE_LENGTH} characters.` },
       { status: 400 }
     );
   }
@@ -148,7 +150,7 @@ export async function POST(
     .insert({
       appointment_id: id,
       sender_user_id: session.user.id,
-      message,
+      message: encryptSensitiveText(message),
     })
     .select("id, sender_user_id, message, created_at")
     .single();
@@ -181,7 +183,7 @@ export async function POST(
       id: inserted.id,
       senderUserId: inserted.sender_user_id,
       senderName: profile?.full_name || session.user.name || "User",
-      message: inserted.message,
+      message,
       createdAt: inserted.created_at,
       mine: true,
     },

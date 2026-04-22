@@ -7,6 +7,7 @@ import { resolveAppointmentAccess } from "@/lib/appointment-access";
 import { detectMimeType, type DetectedMimeType } from "@/lib/security/file-signature";
 import { consumeRateLimit } from "@/lib/security/rate-limit";
 import { getClientIdentifier, hasTrustedOrigin } from "@/lib/security/request-guard";
+import { decryptSensitiveText, encryptSensitiveText } from "@/lib/security/encryption";
 
 const UUID_PATTERN = /^[0-9a-fA-F-]{36}$/;
 const FILE_BUCKET = "appointment-files";
@@ -106,7 +107,7 @@ export async function GET(
       return {
         id: row.id,
         uploaderUserId: row.uploader_user_id,
-        fileName: row.file_name,
+        fileName: decryptSensitiveText(row.file_name) ?? "file",
         mimeType: row.mime_type,
         sizeBytes: row.size_bytes,
         createdAt: row.created_at,
@@ -205,7 +206,7 @@ export async function POST(
       appointment_id: id,
       uploader_user_id: session.user.id,
       storage_path: storagePath,
-      file_name: file.name.slice(0, 220),
+      file_name: encryptSensitiveText(file.name.slice(0, 220)),
       mime_type: detected,
       size_bytes: file.size,
     })
@@ -225,7 +226,7 @@ export async function POST(
     file: {
       id: inserted.id,
       uploaderUserId: inserted.uploader_user_id,
-      fileName: inserted.file_name,
+      fileName: file.name.slice(0, 220),
       mimeType: inserted.mime_type,
       sizeBytes: inserted.size_bytes,
       createdAt: inserted.created_at,

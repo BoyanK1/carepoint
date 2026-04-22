@@ -3,6 +3,7 @@ import {
   completeExpiredAppointments,
   getEffectiveAppointmentStatus,
 } from "@/lib/appointments";
+import { decryptSensitiveText } from "@/lib/security/encryption";
 
 export interface AppointmentAccessRow {
   id: string;
@@ -44,6 +45,7 @@ export async function resolveAppointmentAccess(
   }
 
   const appointment = appointmentData as AppointmentAccessRow;
+  appointment.reason = decryptSensitiveText(appointment.reason);
   const normalizedStatus = getEffectiveAppointmentStatus({
     id: appointment.id,
     startsAt: appointment.starts_at,

@@ -5,6 +5,7 @@ import {
   completeExpiredAppointments,
   getEffectiveAppointmentStatus,
 } from "@/lib/appointments";
+import { decryptSensitiveText } from "@/lib/security/encryption";
 
 function getStartOfDayIso(value: string) {
   const date = new Date(`${value}T00:00:00.000Z`);
@@ -117,7 +118,7 @@ export async function GET(request: Request) {
       continue;
     }
 
-    const escapedReason = (row.reason ?? "").replaceAll('"', '""');
+    const escapedReason = (decryptSensitiveText(row.reason) ?? "").replaceAll('"', '""');
     lines.push(
       [
         row.id,

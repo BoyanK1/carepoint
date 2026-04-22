@@ -6,6 +6,7 @@ import {
   completeExpiredAppointments,
   getEffectiveAppointmentStatus,
 } from "@/lib/appointments";
+import { decryptSensitiveText } from "@/lib/security/encryption";
 
 function getStartOfDayIso(value: string) {
   const date = new Date(`${value}T00:00:00.000Z`);
@@ -169,7 +170,7 @@ export async function GET(request: Request) {
         startsAt: appointment.starts_at,
         endsAt: appointment.ends_at,
         status: normalizedStatus,
-        reason: appointment.reason,
+        reason: decryptSensitiveText(appointment.reason),
         createdAt: appointment.created_at,
         canceledAt: appointment.canceled_at,
         doctor: doctor

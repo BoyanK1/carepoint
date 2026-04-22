@@ -492,7 +492,7 @@ export default function AppointmentDetailPage() {
             <div className="mt-3 grid gap-2 sm:flex">
               <input
                 value={messageText}
-                onChange={(event) => setMessageText(event.target.value.slice(0, 2000))}
+                onChange={(event) => setMessageText(event.target.value.slice(0, 1000))}
                 placeholder={t("appointmentDetailChatPlaceholder")}
                 className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-400"
               />
