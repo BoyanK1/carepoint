@@ -20,6 +20,22 @@ const BOOK_WINDOW_SECONDS = 10 * 60;
 const BOOK_MAX_REQUESTS = 20;
 const MIN_BOOKING_REASON_LENGTH = 100;
 
+interface AppointmentRow {
+  id: string;
+  doctor_profile_id: string | null;
+  patient_user_id: string | null;
+  starts_at: string;
+  ends_at: string | null;
+  status: string;
+  reason: string | null;
+  created_at: string;
+  canceled_at: string | null;
+  rescheduled_from: string | null;
+  payment_status: string | null;
+  deposit_amount: number | null;
+  paid_at: string | null;
+}
+
 function getWindowEnd(day: Date, endTime: string) {
   const [hours = "0", minutes = "0", seconds = "0"] = endTime.split(":");
   return new Date(
@@ -48,34 +64,53 @@ export async function GET() {
     );
   }
 
-  const { data: appointments, error } = await admin
-    .from("appointments")
-    .select(
-      "id, doctor_profile_id, patient_user_id, starts_at, ends_at, status, reason, created_at, canceled_at, rescheduled_from, payment_status, deposit_amount, paid_at"
-    )
-    .eq("patient_user_id", session.user.id)
-    .order("starts_at", { ascending: false });
+  const profile = await getUserProfile(session.user.id);
+  const { data: ownedDoctorProfiles, error: ownedDoctorProfilesError } =
+    profile?.role === "doctor" || profile?.role === "admin"
+      ? await admin.from("doctor_profiles").select("id").eq("user_id", session.user.id)
+      : { data: [], error: null };
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (ownedDoctorProfilesError) {
+    return NextResponse.json({ error: ownedDoctorProfilesError.message }, { status: 500 });
   }
 
-  const rows =
-    (appointments as Array<{
-      id: string;
-      doctor_profile_id: string | null;
-      patient_user_id: string | null;
-      starts_at: string;
-      ends_at: string | null;
-      status: string;
-      reason: string | null;
-      created_at: string;
-      canceled_at: string | null;
-      rescheduled_from: string | null;
-      payment_status: string | null;
-      deposit_amount: number | null;
-      paid_at: string | null;
-    }> | null) ?? [];
+  const doctorProfileIds = ((ownedDoctorProfiles ?? []) as Array<{ id: string }>).map(
+    (item) => item.id
+  );
+  const selectColumns =
+    "id, doctor_profile_id, patient_user_id, starts_at, ends_at, status, reason, created_at, canceled_at, rescheduled_from, payment_status, deposit_amount, paid_at";
+
+  const patientAppointmentsPromise = admin
+    .from("appointments")
+    .select(selectColumns)
+    .eq("patient_user_id", session.user.id);
+  const doctorAppointmentsPromise = doctorProfileIds.length
+    ? admin.from("appointments").select(selectColumns).in("doctor_profile_id", doctorProfileIds)
+    : Promise.resolve({ data: [], error: null });
+
+  const [patientAppointmentsResult, doctorAppointmentsResult] = await Promise.all([
+    patientAppointmentsPromise,
+    doctorAppointmentsPromise,
+  ]);
+
+  if (patientAppointmentsResult.error) {
+    return NextResponse.json({ error: patientAppointmentsResult.error.message }, { status: 500 });
+  }
+  if (doctorAppointmentsResult.error) {
+    return NextResponse.json({ error: doctorAppointmentsResult.error.message }, { status: 500 });
+  }
+
+  const appointmentMap = new Map<string, AppointmentRow>();
+  for (const row of [
+    ...(((patientAppointmentsResult.data ?? []) as AppointmentRow[]) ?? []),
+    ...(((doctorAppointmentsResult.data ?? []) as AppointmentRow[]) ?? []),
+  ]) {
+    appointmentMap.set(row.id, row);
+  }
+
+  const rows = Array.from(appointmentMap.values()).sort(
+    (a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime()
+  );
 
   try {
     await completeExpiredAppointments(
@@ -102,6 +137,9 @@ export async function GET() {
 
   const doctorIds = Array.from(
     new Set(rows.map((row) => row.doctor_profile_id).filter((value): value is string => Boolean(value)))
+  );
+  const patientIds = Array.from(
+    new Set(rows.map((row) => row.patient_user_id).filter((value): value is string => Boolean(value)))
   );
 
   if (doctorIds.length === 0) {
@@ -137,11 +175,12 @@ export async function GET() {
     }> | null) ?? [];
 
   const doctorUserIds = Array.from(new Set(doctors.map((row) => row.user_id)));
-  const { data: userProfiles, error: usersError } = doctorUserIds.length
+  const profileIds = Array.from(new Set([...doctorUserIds, ...patientIds]));
+  const { data: userProfiles, error: usersError } = profileIds.length
     ? await admin
         .from("user_profiles")
         .select("id, full_name, avatar_url, city")
-        .in("id", doctorUserIds)
+        .in("id", profileIds)
     : { data: [], error: null };
 
   if (usersError) {
@@ -185,6 +224,18 @@ export async function GET() {
         paymentStatus: row.payment_status,
         depositAmount: row.deposit_amount,
         paidAt: row.paid_at,
+        access: {
+          isPatient: row.patient_user_id === session.user.id,
+          isDoctor: Boolean(doctor?.user_id && doctor.user_id === session.user.id),
+        },
+        patient: row.patient_user_id
+          ? {
+              id: row.patient_user_id,
+              name: profileMap.get(row.patient_user_id)?.full_name || "Patient",
+              city: profileMap.get(row.patient_user_id)?.city || null,
+              avatarUrl: profileMap.get(row.patient_user_id)?.avatar_url || null,
+            }
+          : null,
         doctor: doctor
           ? {
               id: doctor.id,
@@ -315,6 +366,27 @@ export async function POST(request: Request) {
   if (duplicateAppointment?.id) {
     return NextResponse.json(
       { error: "You already have this appointment booked." },
+      { status: 409 }
+    );
+  }
+
+  const dayStart = new Date(
+    Date.UTC(slotStart.getUTCFullYear(), slotStart.getUTCMonth(), slotStart.getUTCDate())
+  );
+  const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+  const { data: sameDayAppointment } = await admin
+    .from("appointments")
+    .select("id")
+    .eq("patient_user_id", session.user.id)
+    .eq("doctor_profile_id", doctorProfileId)
+    .gte("starts_at", dayStart.toISOString())
+    .lt("starts_at", dayEnd.toISOString())
+    .in("status", ["scheduled", "confirmed"])
+    .maybeSingle();
+
+  if (sameDayAppointment?.id) {
+    return NextResponse.json(
+      { error: "You can book only one appointment per day with this doctor." },
       { status: 409 }
     );
   }

@@ -124,6 +124,17 @@ export async function GET(
     daysAhead: 30,
     maxSlots: 50,
   });
+  const now = Date.now();
+  const bookedSlots = appointments
+    .filter(
+      (appointment) =>
+        ["scheduled", "confirmed"].includes(appointment.status) &&
+        new Date(appointment.starts_at).getTime() > now
+    )
+    .map((appointment) => ({
+      startsAt: appointment.starts_at,
+      endsAt: appointment.ends_at,
+    }));
 
   const ratingCount = reviews.length;
   const ratingAverage =
@@ -161,6 +172,7 @@ export async function GET(
         verifiedVisit: item.verified_visit,
       })),
       availability,
+      bookedSlots,
       availableSlots,
       isFavorite: Boolean(favoriteResult.data),
     },

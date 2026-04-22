@@ -22,7 +22,11 @@ interface ReviewItem {
 
 interface SlotItem {
   startsAt: string;
-  endsAt: string;
+  endsAt: string | null;
+}
+
+interface DisplaySlot extends SlotItem {
+  isBooked: boolean;
 }
 
 interface DoctorDetail {
@@ -37,6 +41,7 @@ interface DoctorDetail {
   ratingBreakdown: RatingBreakdownItem[];
   reviews: ReviewItem[];
   availableSlots: SlotItem[];
+  bookedSlots: SlotItem[];
   isFavorite: boolean;
 }
 
@@ -104,11 +109,16 @@ export default function DoctorDetailPage() {
 
   const groupedSlots = useMemo(() => {
     if (!doctor) {
-      return [] as Array<{ dayLabel: string; slots: SlotItem[] }>;
+      return [] as Array<{ dayLabel: string; slots: DisplaySlot[] }>;
     }
 
-    const groups = new Map<string, SlotItem[]>();
-    for (const slot of doctor.availableSlots) {
+    const allSlots: DisplaySlot[] = [
+      ...doctor.availableSlots.map((slot) => ({ ...slot, isBooked: false })),
+      ...(doctor.bookedSlots ?? []).map((slot) => ({ ...slot, isBooked: true })),
+    ].sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
+
+    const groups = new Map<string, DisplaySlot[]>();
+    for (const slot of allSlots) {
       const key = new Date(slot.startsAt).toLocaleDateString(locale, {
         weekday: "short",
         month: "short",
@@ -348,10 +358,21 @@ export default function DoctorDetailPage() {
                         key={slot.startsAt}
                         type="button"
                         onClick={() => void bookSlot(slot)}
-                        disabled={pendingSlot === slot.startsAt || isSelfDoctor || !canBookWithNote}
-                        className="rounded-full border border-slate-200 bg-white px-3 py-2.5 text-xs font-semibold text-slate-700 transition hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
+                        disabled={
+                          slot.isBooked ||
+                          pendingSlot === slot.startsAt ||
+                          isSelfDoctor ||
+                          !canBookWithNote
+                        }
+                        className={`rounded-full border px-3 py-2.5 text-xs font-semibold transition disabled:cursor-not-allowed ${
+                          slot.isBooked
+                            ? "border-rose-200 bg-rose-50 text-rose-700 opacity-80"
+                            : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 disabled:opacity-60"
+                        }`}
                       >
-                        {pendingSlot === slot.startsAt
+                        {slot.isBooked
+                          ? t("doctorDetailSlotBooked")
+                          : pendingSlot === slot.startsAt
                           ? t("doctorDetailBooking")
                           : new Date(slot.startsAt).toLocaleTimeString(locale, {
                               hour: "2-digit",

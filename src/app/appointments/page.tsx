@@ -13,6 +13,16 @@ interface AppointmentItem {
   endsAt: string | null;
   status: string;
   reason: string | null;
+  access?: {
+    isPatient: boolean;
+    isDoctor: boolean;
+  };
+  patient: {
+    id: string;
+    name: string;
+    city: string | null;
+    avatarUrl: string | null;
+  } | null;
   doctor: {
     id: string;
     userId: string;
@@ -296,9 +306,23 @@ export default function AppointmentsPage() {
             const badgeClass = statusClasses[appointment.status] ?? statusClasses.scheduled;
             const isPastAppointment =
               currentTime > 0 && new Date(appointment.startsAt).getTime() <= currentTime;
+            const isDoctorView = Boolean(appointment.access?.isDoctor && !appointment.access?.isPatient);
             const showManageControls =
               (appointment.status === "scheduled" || appointment.status === "confirmed") &&
               !isPastAppointment;
+            const primaryName = isDoctorView
+              ? appointment.patient?.name || t("appointmentsPatientFallback")
+              : appointment.doctor?.name || t("appointmentsDoctorFallback");
+            const secondaryParts = isDoctorView
+              ? [
+                  t("appointmentsBookedWithYou"),
+                  appointment.patient?.city,
+                  appointment.doctor?.specialty,
+                ]
+              : [
+                  appointment.doctor?.specialty,
+                  appointment.doctor?.city,
+                ];
             return (
               <article
                 key={appointment.id}
@@ -315,22 +339,29 @@ export default function AppointmentsPage() {
                       {formatDate(appointment.startsAt, locale)}
                     </p>
                     <p className="text-sm text-slate-700">
-                      {appointment.doctor?.name || t("appointmentsDoctorFallback")}
-                      {appointment.doctor?.specialty ? ` · ${appointment.doctor.specialty}` : ""}
-                      {appointment.doctor?.city ? ` · ${appointment.doctor.city}` : ""}
+                      {primaryName}
+                      {secondaryParts.filter(Boolean).map((part) => ` · ${part}`).join("")}
                     </p>
                     <p className="text-sm text-slate-500">{appointment.reason || t("appointmentsNoNote")}</p>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
-                    {appointment.doctor && (
+                    {(isDoctorView ? appointment.patient : appointment.doctor) && (
                       <Avatar
-                        name={appointment.doctor.name}
-                        src={appointment.doctor.avatarUrl}
+                        name={
+                          isDoctorView
+                            ? appointment.patient?.name
+                            : appointment.doctor?.name
+                        }
+                        src={
+                          isDoctorView
+                            ? appointment.patient?.avatarUrl
+                            : appointment.doctor?.avatarUrl
+                        }
                         size={42}
                       />
                     )}
-                    {appointment.doctor && (
+                    {appointment.doctor && !isDoctorView && (
                       <button
                         type="button"
                         onClick={() => void toggleFavorite(appointment)}
@@ -366,20 +397,22 @@ export default function AppointmentsPage() {
 
                   {showManageControls && (
                     <div className="grid gap-2 rounded-2xl border border-slate-200 bg-slate-50/80 p-3 sm:grid-cols-[1fr_auto] sm:items-end">
-                      <label className="grid gap-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        {t("appointmentsPickNewDateTime")}
-                        <input
-                          type="datetime-local"
-                          value={reschedule[appointment.id] ?? toDateTimeLocal(appointment.startsAt)}
-                          onChange={(event) =>
-                            setReschedule((current) => ({
-                              ...current,
-                              [appointment.id]: event.target.value,
-                            }))
-                          }
-                          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-slate-300"
-                        />
-                      </label>
+                      {!isDoctorView && (
+                        <label className="grid gap-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          {t("appointmentsPickNewDateTime")}
+                          <input
+                            type="datetime-local"
+                            value={reschedule[appointment.id] ?? toDateTimeLocal(appointment.startsAt)}
+                            onChange={(event) =>
+                              setReschedule((current) => ({
+                                ...current,
+                                [appointment.id]: event.target.value,
+                              }))
+                            }
+                            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-slate-300"
+                          />
+                        </label>
+                      )}
 
                       <div className="grid gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-end">
                         <button
@@ -392,14 +425,16 @@ export default function AppointmentsPage() {
                             ? t("appointmentsPleaseWait")
                             : t("appointmentsCancel")}
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => void updateAppointment(appointment.id, "reschedule")}
-                          disabled={pendingId === appointment.id}
-                          className="rounded-full bg-slate-900 px-3 py-2.5 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          {t("appointmentsReschedule")}
-                        </button>
+                        {!isDoctorView && (
+                          <button
+                            type="button"
+                            onClick={() => void updateAppointment(appointment.id, "reschedule")}
+                            disabled={pendingId === appointment.id}
+                            className="rounded-full bg-slate-900 px-3 py-2.5 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {t("appointmentsReschedule")}
+                          </button>
+                        )}
                       </div>
                     </div>
                   )}

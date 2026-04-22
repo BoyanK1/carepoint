@@ -217,10 +217,11 @@ export default function AppointmentDetailPage() {
     ? currentTime > 0 && new Date(appointment.startsAt).getTime() <= currentTime
     : false;
   const canEdit = Boolean(
-    appointment?.access.isPatient &&
+    (appointment?.access.isPatient || appointment?.access.isDoctor) &&
       appointment &&
       ["scheduled", "confirmed"].includes(appointment.status)
   );
+  const canReschedule = Boolean(appointment?.access.isPatient);
   const canManageAppointment = canEdit && !isPastAppointment;
 
   async function handleCancel() {
@@ -389,14 +390,34 @@ export default function AppointmentDetailPage() {
               {formatDate(appointment.startsAt, locale)}
             </h1>
             <p className="mt-2 max-w-2xl text-sm text-slate-600 sm:text-base">
-              {appointment.doctor?.name || t("appointmentsDoctorFallback")}
-              {appointment.doctor?.specialty ? ` · ${appointment.doctor.specialty}` : ""}
+              {appointment.access.isDoctor && !appointment.access.isPatient
+                ? appointment.patient?.name || t("appointmentsPatientFallback")
+                : appointment.doctor?.name || t("appointmentsDoctorFallback")}
+              {appointment.access.isDoctor && !appointment.access.isPatient
+                ? ` · ${t("appointmentsBookedWithYou")}`
+                : appointment.doctor?.specialty
+                  ? ` · ${appointment.doctor.specialty}`
+                  : ""}
               {appointment.doctor?.city ? ` · ${appointment.doctor.city}` : ""}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            {appointment.doctor && (
-              <Avatar name={appointment.doctor.name} src={appointment.doctor.avatarUrl} size={48} />
+            {(appointment.access.isDoctor && !appointment.access.isPatient
+              ? appointment.patient
+              : appointment.doctor) && (
+              <Avatar
+                name={
+                  appointment.access.isDoctor && !appointment.access.isPatient
+                    ? appointment.patient?.name
+                    : appointment.doctor?.name
+                }
+                src={
+                  appointment.access.isDoctor && !appointment.access.isPatient
+                    ? appointment.patient?.avatarUrl
+                    : appointment.doctor?.avatarUrl
+                }
+                size={48}
+              />
             )}
             <span
               className={`inline-flex rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide ${badgeClass}`}
@@ -491,26 +512,30 @@ export default function AppointmentDetailPage() {
           {canManageAppointment && (
             <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
               <h2 className="text-lg font-semibold text-slate-900">{t("appointmentDetailManage")}</h2>
-              <label className="mt-4 grid gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                {t("appointmentsPickNewDateTime")}
-                <input
-                  type="datetime-local"
-                  value={rescheduleAt}
-                  onChange={(event) => setRescheduleAt(event.target.value)}
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-300"
-                />
-              </label>
+              {canReschedule && (
+                <label className="mt-4 grid gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  {t("appointmentsPickNewDateTime")}
+                  <input
+                    type="datetime-local"
+                    value={rescheduleAt}
+                    onChange={(event) => setRescheduleAt(event.target.value)}
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-300"
+                  />
+                </label>
+              )}
               <div className="mt-4 grid gap-2 sm:flex sm:flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => void handleReschedule()}
-                  disabled={pendingAction === "reschedule"}
-                  className="rounded-full bg-slate-900 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {pendingAction === "reschedule"
-                    ? t("appointmentsPleaseWait")
-                    : t("appointmentsReschedule")}
-                </button>
+                {canReschedule && (
+                  <button
+                    type="button"
+                    onClick={() => void handleReschedule()}
+                    disabled={pendingAction === "reschedule"}
+                    className="rounded-full bg-slate-900 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {pendingAction === "reschedule"
+                      ? t("appointmentsPleaseWait")
+                      : t("appointmentsReschedule")}
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => void handleCancel()}

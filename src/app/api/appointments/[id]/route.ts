@@ -206,19 +206,13 @@ export async function PATCH(
     );
   }
 
-  const { data: appointment, error: appointmentError } = await admin
-    .from("appointments")
-    .select(
-      "id, doctor_profile_id, patient_user_id, starts_at, ends_at, status, reason, payment_status"
-    )
-    .eq("id", id)
-    .eq("patient_user_id", session.user.id)
-    .single();
-
-  if (appointmentError || !appointment) {
+  const profile = await getUserProfile(session.user.id);
+  const access = await resolveAppointmentAccess(admin, id, session.user.id, profile?.role === "admin");
+  if (!access || !access.canAccess) {
     return NextResponse.json({ error: "Appointment not found." }, { status: 404 });
   }
 
+  const appointment = access.appointment;
   const body = await request.json().catch(() => null);
   const action = String(body?.action ?? "").trim();
 
@@ -265,6 +259,9 @@ export async function PATCH(
   const doctorEmail = doctorProfile?.user_id
     ? await getAuthUserEmail(doctorProfile.user_id)
     : null;
+  const patientEmail = appointment.patient_user_id
+    ? await getAuthUserEmail(appointment.patient_user_id)
+    : null;
 
   const doctorName = doctorUserProfile?.full_name || "Doctor";
 
@@ -295,7 +292,7 @@ export async function PATCH(
       appointment_id: id,
       actor_user_id: session.user.id,
       event_type: "cancelled",
-      event_note: "Cancelled by patient",
+      event_note: access.isDoctor ? "Cancelled by doctor" : "Cancelled by patient",
     });
 
     await syncAppointmentReminders(admin, id, appointment.starts_at, "cancelled");
@@ -308,10 +305,12 @@ export async function PATCH(
     if (doctorProfile?.user_id) {
       await createManyNotifications(admin, [
         {
-          userId: session.user.id,
+          userId: appointment.patient_user_id ?? session.user.id,
           category: "appointment",
           title: "Appointment cancelled",
-          message: `You cancelled your appointment with ${doctorName} (${dateLabel}).`,
+          message: access.isDoctor
+            ? `${doctorName} cancelled your ${dateLabel} appointment.`
+            : `You cancelled your appointment with ${doctorName} (${dateLabel}).`,
           entityType: "appointment",
           entityId: id,
         },
@@ -319,18 +318,22 @@ export async function PATCH(
           userId: doctorProfile.user_id,
           category: "appointment",
           title: "Appointment cancelled",
-          message: `A patient cancelled the ${dateLabel} appointment.`,
+          message: access.isDoctor
+            ? `You cancelled the ${dateLabel} appointment.`
+            : `A patient cancelled the ${dateLabel} appointment.`,
           entityType: "appointment",
           entityId: id,
         },
       ]);
     }
 
-    if (session.user.email) {
+    if (patientEmail) {
       await sendStatusEmail({
-        to: session.user.email,
+        to: patientEmail,
         subject: "CarePoint appointment cancelled",
-        text: `Your appointment with ${doctorName} on ${dateLabel} has been cancelled.`,
+        text: access.isDoctor
+          ? `${doctorName} cancelled your appointment on ${dateLabel}.`
+          : `Your appointment with ${doctorName} on ${dateLabel} has been cancelled.`,
       }).catch(() => null);
     }
 
@@ -346,6 +349,13 @@ export async function PATCH(
   }
 
   const startsAt = String(body?.startsAt ?? "").trim();
+  if (!access.isPatient) {
+    return NextResponse.json(
+      { error: "Only patients can reschedule appointments." },
+      { status: 403 }
+    );
+  }
+
   if (!["scheduled", "confirmed"].includes(appointment.status)) {
     return NextResponse.json(
       { error: "Only active appointments can be rescheduled." },
@@ -413,6 +423,28 @@ export async function PATCH(
   if (duplicateAppointment?.id) {
     return NextResponse.json(
       { error: "You already have this appointment booked." },
+      { status: 409 }
+    );
+  }
+
+  const dayStart = new Date(
+    Date.UTC(nextStart.getUTCFullYear(), nextStart.getUTCMonth(), nextStart.getUTCDate())
+  );
+  const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+  const { data: sameDayAppointment } = await admin
+    .from("appointments")
+    .select("id")
+    .eq("patient_user_id", session.user.id)
+    .eq("doctor_profile_id", appointment.doctor_profile_id)
+    .gte("starts_at", dayStart.toISOString())
+    .lt("starts_at", dayEnd.toISOString())
+    .in("status", ["scheduled", "confirmed"])
+    .neq("id", id)
+    .maybeSingle();
+
+  if (sameDayAppointment?.id) {
+    return NextResponse.json(
+      { error: "You can book only one appointment per day with this doctor." },
       { status: 409 }
     );
   }

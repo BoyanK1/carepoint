@@ -227,6 +227,8 @@ export const translations = {
     appointmentsLoading: "Loading appointments...",
     appointmentsEmpty: "No appointments found for this filter.",
     appointmentsDoctorFallback: "Doctor",
+    appointmentsPatientFallback: "Patient",
+    appointmentsBookedWithYou: "Booked with you",
     appointmentsNoNote: "No note added.",
     appointmentsFavorite: "Favorite",
     appointmentsUnfavorite: "Unfavorite",
@@ -314,6 +316,7 @@ export const translations = {
     doctorDetailSelfBookingDisabled:
       "You are viewing your own doctor profile. Self-booking is disabled.",
     doctorDetailNoOpenSlots: "No open slots in the next 30 days.",
+    doctorDetailSlotBooked: "Booked",
     doctorDetailBooking: "Booking...",
     doctorDetailBookedSuccess: "Appointment booked. Check your notifications for updates.",
     doctorDetailBookingError: "Could not book this slot.",
@@ -638,6 +641,8 @@ export const translations = {
     appointmentsLoading: "Зареждаме часовете...",
     appointmentsEmpty: "Няма часове за този филтър.",
     appointmentsDoctorFallback: "Лекар",
+    appointmentsPatientFallback: "Пациент",
+    appointmentsBookedWithYou: "Записан при теб",
     appointmentsNoNote: "Няма добавена бележка.",
     appointmentsFavorite: "Любим",
     appointmentsUnfavorite: "Премахни от любими",
@@ -725,6 +730,7 @@ export const translations = {
     doctorDetailSelfBookingDisabled:
       "Разглеждаш собствения си лекарски профил. Записването при себе си е изключено.",
     doctorDetailNoOpenSlots: "Няма свободни часове за следващите 30 дни.",
+    doctorDetailSlotBooked: "Зает",
     doctorDetailBooking: "Записване...",
     doctorDetailBookedSuccess: "Часът е записан. Провери известията за обновления.",
     doctorDetailBookingError: "Не успяхме да запишем този час.",
