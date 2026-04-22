@@ -47,7 +47,8 @@ Recommended / feature-specific:
    - Configure redirect URLs for local + Vercel domains.
 
 ### Demo seed tip
-- For the full seeded demo cast, create at least 6 auth users first (3 patient accounts + 3 doctor accounts), then run `supabase/seed.sql`.
+- Run `supabase/seed.sql` for a full presentation cast: 20 Bulgarian doctors, 4 demo patients, reviews, availability, appointments, favorites, and notifications.
+- The seed restores `fenabg47@gmail.com` to `Bobo K` and does not reuse that account as a demo persona.
 
 ## 4) Authentication setup
 

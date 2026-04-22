@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { useLanguage } from "@/components/LanguageProvider";
 
 export default function AuthPage() {
+  const router = useRouter();
   const { t } = useLanguage();
   const [signInEmail, setSignInEmail] = useState("");
   const [signInPassword, setSignInPassword] = useState("");
@@ -14,6 +16,7 @@ export default function AuthPage() {
   const [signUpPassword, setSignUpPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [signingIn, setSigningIn] = useState(false);
 
   const handleCredentialsSignIn = async (
     event: React.FormEvent<HTMLFormElement>
@@ -21,20 +24,27 @@ export default function AuthPage() {
     event.preventDefault();
     setError(null);
     setMessage(null);
+    setSigningIn(true);
 
     try {
       const result = await signIn("credentials", {
         email: signInEmail,
         password: signInPassword,
-        redirect: true,
+        redirect: false,
         callbackUrl: "/dashboard",
       });
 
-      if (result?.error) {
+      if (!result?.ok || result.error) {
         setError(t("authInvalidCredentials"));
+        return;
       }
+
+      router.replace("/dashboard");
+      router.refresh();
     } catch {
       setError(t("authInvalidCredentials"));
+    } finally {
+      setSigningIn(false);
     }
   };
 
@@ -105,7 +115,8 @@ export default function AuthPage() {
             </label>
             <button
               type="submit"
-              className="rounded-full bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+              disabled={signingIn}
+              className="rounded-full bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {t("authSignIn")}
             </button>
