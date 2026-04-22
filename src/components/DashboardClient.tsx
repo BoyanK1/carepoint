@@ -165,6 +165,14 @@ export function DashboardClient({
             </Link>
             {canSeeDoctorAnalytics && (
               <Link
+                href="/doctor/schedule"
+                className="rounded-full border border-slate-200 px-4 py-2.5 text-center text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+              >
+                {t("dashboardDoctorSchedule")}
+              </Link>
+            )}
+            {canSeeDoctorAnalytics && (
+              <Link
                 href="/doctor/analytics"
                 className="rounded-full border border-slate-200 px-4 py-2.5 text-center text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
               >

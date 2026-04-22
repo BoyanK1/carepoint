@@ -50,6 +50,11 @@ export function NavbarClient({ user, initialUnreadCount = 0 }: NavbarClientProps
     { href: "/dashboard", label: t("navDashboard"), show: Boolean(user) },
     { href: "/appointments", label: t("navAppointments"), show: Boolean(user) },
     {
+      href: "/doctor/schedule",
+      label: t("navSchedule"),
+      show: user?.role === "doctor",
+    },
+    {
       href: "/doctor/analytics",
       label: t("navAnalytics"),
       show: user?.role === "doctor",
