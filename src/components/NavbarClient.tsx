@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { Avatar } from "@/components/Avatar";
 import { useLanguage } from "@/components/LanguageProvider";
@@ -21,6 +22,7 @@ interface NavbarClientProps {
 export function NavbarClient({ user, initialUnreadCount = 0 }: NavbarClientProps) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const pathname = usePathname();
   const { t } = useLanguage();
   const effectiveUnreadCount = user ? initialUnreadCount : 0;
   const canApplyDoctor = !user || user.role === "patient";
@@ -63,6 +65,9 @@ export function NavbarClient({ user, initialUnreadCount = 0 }: NavbarClientProps
     { href: "/admin", label: t("navAdmin"), show: user?.role === "admin" },
   ].filter((item) => item.show);
 
+  const isActive = (href: string) =>
+    pathname === href || (href !== "/" && Boolean(pathname?.startsWith(`${href}/`)));
+
   return (
     <header
       className={`sticky top-0 z-50 transition ${
@@ -91,7 +96,11 @@ export function NavbarClient({ user, initialUnreadCount = 0 }: NavbarClientProps
                   <Link
                     key={item.href}
                     href={item.href}
-                    className="rounded-full px-3 py-1 whitespace-nowrap transition hover:bg-slate-100 hover:text-slate-900"
+                    className={`whitespace-nowrap rounded-full px-3 py-1 transition ${
+                      isActive(item.href)
+                        ? "bg-slate-100 text-slate-900 shadow-sm"
+                        : "hover:bg-slate-100 hover:text-slate-900"
+                    }`}
                   >
                     {item.label}
                   </Link>
@@ -102,7 +111,11 @@ export function NavbarClient({ user, initialUnreadCount = 0 }: NavbarClientProps
               <>
                 <Link
                   href="/profile"
-                  className="flex max-w-[3rem] shrink-0 items-center gap-2 overflow-hidden rounded-full border border-slate-200/90 bg-white/95 py-1.5 pl-1.5 pr-1.5 shadow-sm transition hover:border-slate-300 sm:max-w-[14rem] sm:pr-2.5"
+                  className={`flex max-w-[3rem] shrink-0 items-center gap-2 overflow-hidden rounded-full border bg-white/95 py-1.5 pl-1.5 pr-1.5 shadow-sm transition sm:max-w-[14rem] sm:pr-2.5 ${
+                    isActive("/profile")
+                      ? "border-slate-300 bg-slate-50"
+                      : "border-slate-200/90 hover:border-slate-300"
+                  }`}
                   title={user.name || user.email || t("navAccount")}
                 >
                   <Avatar name={user.name} src={user.avatarUrl} size={32} />
@@ -124,7 +137,11 @@ export function NavbarClient({ user, initialUnreadCount = 0 }: NavbarClientProps
             ) : (
               <Link
                 href="/auth"
-                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+                className={`rounded-full border bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition ${
+                  isActive("/auth")
+                    ? "border-slate-300 bg-slate-50 text-slate-900"
+                    : "border-slate-200 hover:border-slate-300 hover:text-slate-900"
+                }`}
               >
                 {t("navSignIn")}
               </Link>
@@ -150,7 +167,11 @@ export function NavbarClient({ user, initialUnreadCount = 0 }: NavbarClientProps
                     key={item.href}
                     href={item.href}
                     onClick={() => setMenuOpen(false)}
-                    className="rounded-2xl border border-slate-100 bg-slate-50 px-3 py-3 transition hover:border-slate-200 hover:bg-white hover:text-slate-900"
+                    className={`rounded-2xl border px-3 py-3 transition ${
+                      isActive(item.href)
+                        ? "border-slate-300 bg-white text-slate-900 shadow-sm"
+                        : "border-slate-100 bg-slate-50 hover:border-slate-200 hover:bg-white hover:text-slate-900"
+                    }`}
                   >
                     {item.label}
                   </Link>

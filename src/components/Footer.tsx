@@ -98,6 +98,9 @@ export function Footer() {
                 <Link href="/faq" className="block transition hover:text-slate-900">
                   {t("footerFaq")}
                 </Link>
+                <Link href="/privacy" className="block transition hover:text-slate-900">
+                  {t("footerPrivacyPolicy")}
+                </Link>
                 <p className="text-xs text-slate-500">{t("footerReviewTime")}</p>
               </div>
 
