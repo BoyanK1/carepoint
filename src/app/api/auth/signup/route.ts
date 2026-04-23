@@ -10,6 +10,20 @@ const MAX_SIGNUPS_PER_WINDOW = 8;
 const MAX_NAME_LENGTH = 120;
 const MAX_CITY_LENGTH = 120;
 
+function getEmailRedirectTo(request: Request) {
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const host = forwardedHost ?? request.headers.get("host");
+  const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
+
+  if (host) {
+    const protocol =
+      forwardedProto || (process.env.NODE_ENV === "production" ? "https" : "http");
+    return `${protocol}://${host}/auth?confirmed=1`;
+  }
+
+  return new URL("/auth?confirmed=1", request.url).toString();
+}
+
 function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
@@ -96,6 +110,7 @@ export async function POST(request: Request) {
     email,
     password,
     options: {
+      emailRedirectTo: getEmailRedirectTo(request),
       data: {
         full_name: name,
       },

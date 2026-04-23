@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useLanguage } from "@/components/LanguageProvider";
 
 export default function AuthPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { t } = useLanguage();
   const [signInEmail, setSignInEmail] = useState("");
   const [signInPassword, setSignInPassword] = useState("");
@@ -17,6 +18,10 @@ export default function AuthPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [signingIn, setSigningIn] = useState(false);
+  const confirmed = searchParams.get("confirmed") === "1";
+  const confirmationMessage = confirmed
+    ? "Email confirmed. You can sign in now. / Имейлът е потвърден. Вече можеш да влезеш."
+    : null;
 
   const handleCredentialsSignIn = async (
     event: React.FormEvent<HTMLFormElement>
@@ -179,9 +184,9 @@ export default function AuthPage() {
         {t("authMfaNote")}
       </div>
 
-      {message && (
+      {(confirmationMessage || message) && (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
-          {message}
+          {confirmationMessage || message}
         </div>
       )}
       {error && (
