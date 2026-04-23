@@ -14,41 +14,41 @@ export default function Home() {
           eyebrow: "Платформа за записване и управление на медицински прегледи",
           heroTitle: "Повече яснота, по-малко хаос при запазването на часове.",
           heroBody:
-            "CarePoint събира на едно място търсенето на лекари, свободните графици, резервациите, известията и историята на прегледите. Пациентите намират подходящ специалист по град и специалност, лекарите управляват собственото си време, а администраторите потвърждават профилите и следят критичните действия в системата.",
+            "CarePoint събира на едно място търсенето на лекари, свободните графици, резервациите, известията и историята на прегледите. Платформата е създадена да направи записването на медицински преглед бързо, ясно и удобно, без излишно лутане между телефони, чатове и ръчни списъци.",
           heroPoints: [
             "Търсене по име, специалност и град",
             "Записване на час само в реално свободни слотове",
             "График, който лекарят управлява сам",
-            "Известия, история и защитени административни действия",
+            "Известия, история и по-добра организация след записа",
           ],
           snapshotLabel: "Какво има в платформата",
           snapshotTitle: "CarePoint не е само форма за резервация.",
           snapshotBody:
-            "Началната логика на приложението е изградена около реални роли и реални процеси в медицинска среда.",
+            "Продуктът е изграден около реални нужди на хора, които искат бързо да намерят специалист, да запазят удобен час и да не губят контекст след това.",
           stats: [
-            { value: "3", label: "основни роли" },
             { value: "24ч", label: "филтър за бърз запис" },
-            { value: "MFA", label: "за админ действия" },
-            { value: "RLS", label: "защита на данните" },
+            { value: "1 място", label: "за лекари, часове и история" },
+            { value: "100%", label: "валидирани слотове" },
+            { value: "Защитено", label: "съхранение на чувствителни данни" },
           ],
           whyLabel: "Защо CarePoint",
-          whyTitle: "По-подредено преживяване за пациенти, лекари и администратори",
+          whyTitle: "По-подредено преживяване от първото търсене до самия преглед",
           whyCards: [
             {
               title: "По-малко объркване при записване",
               body: "Свободните и заетите слотове се показват ясно, а логиката на системата не допуска конфликтни активни резервации в един и същи слот.",
             },
             {
-              title: "Проверени лекарски профили",
-              body: "Лекарите кандидатстват с документи, а административният панел позволява преглед, одобрение или отказ преди профилът да стане публичен.",
+              title: "По-лесен избор на правилния специалист",
+              body: "Профилите, специалностите, градовете и отзивите помагат на потребителя да стигне по-бързо до правилния лекар за конкретната нужда.",
             },
             {
               title: "Полезно и след самото записване",
               body: "Потребителят не губи контекста след резервацията, защото има история, известия, статус на прегледа, календарен експорт и детайли за часа.",
             },
             {
-              title: "Подходящо за представяне и доразвитие",
-              body: "Системата вече обединява ключовите модули на един реален продукт и може да се надгражда с плащания, телемедицина и по-богати справки.",
+              title: "Изградено като реален дигитален продукт",
+              body: "Платформата вече покрива основния поток по намиране на лекар, записване, проследяване и обратна връзка и е готова за пазарно доразвитие.",
             },
           ],
           stepsLabel: "Как работи",
@@ -70,26 +70,26 @@ export default function Home() {
               body: "Резервацията остава достъпна в таблото, историята и известията, така че потребителят да не губи информация след записа.",
             },
           ],
-          rolesLabel: "Роли в системата",
-          rolesTitle: "Всяка роля има отделен смисъл и отделни инструменти",
-          roles: [
+          useCasesLabel: "Създадено за реална употреба",
+          useCasesTitle: "Каква стойност дава платформата в ежедневната употреба",
+          useCases: [
             {
-              title: "Пациент",
-              body: "Търси лекари, разглежда профили, запазва часове, следи историята си, получава известия и оставя мнение след приключен преглед.",
+              title: "По-бързо намиране на лекар",
+              body: "Потребителят достига до правилния специалист по-бързо чрез филтри, отзиви и ясна визуализация на свободните слотове.",
               href: "/doctors",
               cta: "Към лекарите",
             },
             {
-              title: "Лекар",
-              body: "Управлява седмичния си график, вижда записаните посещения, отказва часове при нужда и следи основни данни за активността си.",
-              href: "/doctor/apply",
-              cta: "Кандидатствай",
+              title: "По-малко пропусната информация",
+              body: "След запазването на час потребителят има достъп до история, детайли за прегледа, известия и календарен експорт на срещата.",
+              href: "/appointments",
+              cta: "Виж прегледите",
             },
             {
-              title: "Администратор",
-              body: "Проверява кандидатури, работи с MFA защита, следи одитен журнал и поддържа доверието в платформата.",
-              href: "/admin",
-              cta: "Админ панел",
+              title: "По-добро доверие в услугата",
+              body: "Профилите, отзивите, сигурната автентикация и защитата на данните създават усещане за надежден продукт, готов за реални потребители.",
+              href: "/faq",
+              cta: "Научи повече",
             },
           ],
           featuresLabel: "Основни възможности",
@@ -103,16 +103,15 @@ export default function Home() {
             "Известия, любими лекари и обратна връзка",
           ],
           securityLabel: "Сигурност и надеждност",
-          securityTitle: "Платформата е изградена не само за демо, а и с реални защитни механизми",
+          securityTitle: "Платформата е изградена като продукт, а не само като демо интерфейс",
           securityBody:
-            "CarePoint използва удостоверяване, ролеви проверки, ограничения върху чувствителни действия и защита на данните на няколко нива. Това е важно, защото приложението работи с профили, резервации, бележки и административни решения.",
+            "CarePoint използва сигурна автентикация, валидиране на критичните действия и защита на данните на няколко нива. Това е важно, защото приложението работи с профили, резервации, бележки и чувствителна потребителска информация.",
           securityItems: [
-            "многофакторна автентикация за админ действия",
-            "защитени маршрути и контрол на ролите",
+            "защитени сесии и контролиран достъп",
             "валидиране на слотове и защита от конфликтни записи",
             "ограничаване на опити за вход и записване",
             "криптиране на чувствителни текстови полета",
-            "журнал на критичните административни действия",
+            "по-надеждно съхранение на потребителски данни",
           ],
           footerCtaTitle: "Започни сега или разгледай платформата като гост",
           footerCtaBody:
@@ -124,41 +123,41 @@ export default function Home() {
           eyebrow: "Web platform for booking and managing medical appointments",
           heroTitle: "More clarity, less friction when booking care.",
           heroBody:
-            "CarePoint brings doctor discovery, open schedules, bookings, notifications, and appointment history into one place. Patients can find the right specialist by city and specialty, doctors can manage their own availability, and admins can verify profiles and monitor sensitive actions.",
+            "CarePoint brings doctor discovery, open schedules, bookings, notifications, and appointment history into one place. The platform is built to make medical booking feel fast, clear, and dependable instead of scattered across calls, chats, and manual lists.",
           heroPoints: [
             "Search by name, specialty, and city",
             "Book only genuinely available time slots",
             "Doctor-managed schedules instead of fixed hours",
-            "Notifications, history, and protected admin workflows",
+            "Notifications, history, and better follow-through after booking",
           ],
           snapshotLabel: "What is inside",
           snapshotTitle: "CarePoint is more than a simple booking form.",
           snapshotBody:
-            "The product is structured around real roles and real workflows from a medical appointment environment.",
+            "The product is structured around what people actually need: find the right specialist fast, book a suitable visit, and keep track of everything afterward.",
           stats: [
-            { value: "3", label: "core roles" },
-            { value: "24h", label: "urgent availability filter" },
-            { value: "MFA", label: "for admin actions" },
-            { value: "RLS", label: "data protection" },
+            { value: "24h", label: "near-term availability filter" },
+            { value: "1 place", label: "for doctors, bookings, and history" },
+            { value: "100%", label: "validated booking slots" },
+            { value: "Secure", label: "handling of sensitive data" },
           ],
           whyLabel: "Why CarePoint",
-          whyTitle: "A more organized experience for patients, doctors, and admins",
+          whyTitle: "A smoother experience from the first search to the actual visit",
           whyCards: [
             {
               title: "Less confusion during booking",
               body: "Open and booked slots are shown clearly, and the system prevents conflicting active reservations in the same time window.",
             },
             {
-              title: "Verified doctor profiles",
-              body: "Doctors apply with documents, and the admin panel reviews and approves them before profiles become public.",
+              title: "Easier doctor selection",
+              body: "Profiles, specialties, cities, and reviews help people reach the right specialist faster for the exact type of care they need.",
             },
             {
               title: "Useful after the booking too",
               body: "The user keeps context after reserving a visit through notifications, history, appointment status, calendar export, and detail pages.",
             },
             {
-              title: "Ready for presentation and growth",
-              body: "The system already combines the key modules of a real product and can grow with payments, telemedicine, and richer reporting.",
+              title: "Built like a real digital product",
+              body: "The platform already covers the core flow of discovery, booking, follow-up, and feedback and is ready for market-facing growth.",
             },
           ],
           stepsLabel: "How it works",
@@ -180,26 +179,26 @@ export default function Home() {
               body: "The reservation remains visible in the dashboard, history, and notifications so the user never loses context.",
             },
           ],
-          rolesLabel: "Roles in the system",
-          rolesTitle: "Each role has a distinct purpose and distinct tools",
-          roles: [
+          useCasesLabel: "Built for real-world use",
+          useCasesTitle: "What value the platform delivers in day-to-day use",
+          useCases: [
             {
-              title: "Patient",
-              body: "Searches doctors, reviews profiles, books visits, tracks history, receives notifications, and leaves reviews after completed care.",
+              title: "Faster doctor discovery",
+              body: "People reach the right specialist faster with filters, reviews, and clear visibility into open appointment slots.",
               href: "/doctors",
               cta: "Browse doctors",
             },
             {
-              title: "Doctor",
-              body: "Manages weekly availability, sees booked visits, rejects appointments when needed, and follows core activity metrics.",
-              href: "/doctor/apply",
-              cta: "Apply now",
+              title: "Less missed information",
+              body: "After booking, the user still has access to appointment details, notifications, history, and a calendar export for the visit.",
+              href: "/appointments",
+              cta: "View appointments",
             },
             {
-              title: "Admin",
-              body: "Reviews doctor applications, works behind MFA protection, checks the audit log, and preserves trust in the platform.",
-              href: "/admin",
-              cta: "Admin panel",
+              title: "More trust in the service",
+              body: "Profiles, reviews, secure sign-in, and protected data handling make the product feel dependable and ready for real users.",
+              href: "/faq",
+              cta: "Learn more",
             },
           ],
           featuresLabel: "Key capabilities",
@@ -213,16 +212,15 @@ export default function Home() {
             "Use notifications, favorites, and feedback tools",
           ],
           securityLabel: "Security and reliability",
-          securityTitle: "The platform is built for more than a visual demo",
+          securityTitle: "The platform is built like a product, not just a visual demo",
           securityBody:
-            "CarePoint uses authentication, role checks, limits on sensitive actions, and layered data protection. That matters because the app handles profiles, bookings, notes, and admin decisions.",
+            "CarePoint uses secure authentication, booking validation, and layered data protection. That matters because the app handles profiles, reservations, notes, and other sensitive user information.",
           securityItems: [
-            "multi-factor authentication for admin actions",
-            "protected routes and role-aware access control",
+            "protected sessions and controlled access",
             "slot validation and conflict prevention",
             "rate limiting for sign-in and booking flows",
             "encryption for sensitive text fields",
-            "audit logging for critical admin actions",
+            "safer handling of user data",
           ],
           footerCtaTitle: "Start now or explore the platform as a guest",
           footerCtaBody:
@@ -391,25 +389,25 @@ export default function Home() {
       <section className="space-y-4">
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-            {content.rolesLabel}
+            {content.useCasesLabel}
           </p>
           <h2 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
-            {content.rolesTitle}
+            {content.useCasesTitle}
           </h2>
         </div>
         <div className="grid gap-4 lg:grid-cols-3">
-          {content.roles.map((role) => (
+          {content.useCases.map((item) => (
             <article
-              key={role.title}
+              key={item.title}
               className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm"
             >
-              <h3 className="text-xl font-semibold text-slate-900">{role.title}</h3>
-              <p className="mt-3 text-sm leading-relaxed text-slate-600">{role.body}</p>
+              <h3 className="text-xl font-semibold text-slate-900">{item.title}</h3>
+              <p className="mt-3 text-sm leading-relaxed text-slate-600">{item.body}</p>
               <Link
-                href={role.href}
+                href={item.href}
                 className="mt-5 inline-flex rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
               >
-                {role.cta}
+                {item.cta}
               </Link>
             </article>
           ))}
