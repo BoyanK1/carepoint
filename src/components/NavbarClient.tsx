@@ -77,7 +77,7 @@ export function NavbarClient({ user, initialUnreadCount = 0 }: NavbarClientProps
       }`}
     >
       <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
-        <div className="flex min-h-16 items-center gap-3 py-3">
+        <div className="flex min-h-16 items-center gap-2 py-3 sm:gap-3">
           <Link href="/" className="flex min-w-0 items-center gap-2 sm:gap-3">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-slate-900 via-slate-700 to-slate-500 text-xs font-semibold text-white shadow-sm">
               CP
@@ -89,7 +89,7 @@ export function NavbarClient({ user, initialUnreadCount = 0 }: NavbarClientProps
 
           <div className="flex-1" />
 
-          <div className="ml-auto flex min-w-0 items-center gap-3">
+          <div className="ml-auto flex min-w-0 items-center gap-2 sm:gap-3">
             <nav className="hidden min-w-0 items-center justify-end lg:flex">
               <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-2 py-1 text-sm font-medium text-slate-700 shadow-sm">
                 {navItems.map((item) => (
@@ -137,7 +137,7 @@ export function NavbarClient({ user, initialUnreadCount = 0 }: NavbarClientProps
             ) : (
               <Link
                 href="/auth"
-                className={`rounded-full border bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition ${
+                className={`rounded-full border bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition sm:px-4 ${
                   isActive("/auth")
                     ? "border-slate-300 bg-slate-50 text-slate-900"
                     : "border-slate-200 hover:border-slate-300 hover:text-slate-900"
@@ -149,7 +149,7 @@ export function NavbarClient({ user, initialUnreadCount = 0 }: NavbarClientProps
             <button
               type="button"
               onClick={() => setMenuOpen((value) => !value)}
-              className="inline-flex h-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white px-3 text-xs font-semibold uppercase tracking-wide text-slate-700 shadow-sm transition hover:border-slate-300 hover:text-slate-900 lg:hidden"
+              className="inline-flex h-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white px-3 text-[11px] font-semibold uppercase tracking-wide text-slate-700 shadow-sm transition hover:border-slate-300 hover:text-slate-900 sm:text-xs lg:hidden"
               aria-expanded={menuOpen}
               aria-label={menuOpen ? "Close menu" : "Menu"}
             >
@@ -161,7 +161,7 @@ export function NavbarClient({ user, initialUnreadCount = 0 }: NavbarClientProps
         {menuOpen && (
           <div className="pb-4 lg:hidden">
             <div className="rounded-3xl border border-slate-200 bg-white/95 p-3 shadow-lg shadow-slate-200/70">
-              <nav className="grid grid-cols-2 gap-2 text-sm font-semibold text-slate-700">
+              <nav className="grid grid-cols-1 gap-2 text-sm font-semibold text-slate-700 sm:grid-cols-2">
                 {navItems.map((item) => (
                   <Link
                     key={item.href}

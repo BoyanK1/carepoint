@@ -232,32 +232,34 @@ export default function Home() {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8 sm:px-6 sm:py-12 lg:gap-12 lg:py-16">
       <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
-        <div className="grid gap-8 p-5 sm:p-8 lg:grid-cols-[1.15fr_0.85fr] lg:p-10">
+        <div className="grid gap-6 p-4 sm:gap-8 sm:p-8 lg:grid-cols-[1.15fr_0.85fr] lg:p-10">
           <div className="relative">
             <div className="absolute inset-x-0 top-0 h-28 rounded-full bg-gradient-to-r from-cyan-100 via-sky-50 to-transparent blur-3xl" />
             <div className="relative">
-              <p className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-700">
+              <p className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-sky-700 sm:text-[11px] sm:tracking-[0.18em]">
                 {content.eyebrow}
               </p>
-              <h1 className="mt-4 max-w-3xl text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl lg:text-5xl">
+              <h1 className="mt-4 max-w-3xl text-[2.35rem] font-semibold tracking-tight text-slate-900 sm:text-4xl lg:text-5xl">
                 {content.heroTitle}
               </h1>
-              <p className="mt-4 max-w-3xl text-base leading-relaxed text-slate-600 sm:text-lg">
+              <p className="mt-4 max-w-3xl text-[15px] leading-relaxed text-slate-600 sm:text-lg">
                 {content.heroBody}
               </p>
 
-              <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                {content.heroPoints.map((point) => (
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                {content.heroPoints.map((point, index) => (
                   <div
                     key={point}
-                    className="rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3 text-sm text-slate-700"
+                    className={`rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3 text-sm text-slate-700 ${
+                      index > 1 ? "hidden sm:block" : ""
+                    }`}
                   >
                     {point}
                   </div>
                 ))}
               </div>
 
-              <div className="mt-7 grid gap-3 sm:flex sm:flex-wrap">
+              <div className="mt-6 grid gap-3 sm:flex sm:flex-wrap">
                 {session?.user ? (
                   <>
                     <Link
@@ -293,22 +295,24 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="rounded-[1.75rem] border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 p-5 text-white shadow-sm sm:p-6">
+          <div className="rounded-[1.75rem] border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 p-4 text-white shadow-sm sm:p-6">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">
               {content.snapshotLabel}
             </p>
-            <h2 className="mt-3 text-2xl font-semibold tracking-tight">
+            <h2 className="mt-3 text-xl font-semibold tracking-tight sm:text-2xl">
               {content.snapshotTitle}
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-slate-200">
               {content.snapshotBody}
             </p>
 
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              {content.stats.map((item) => (
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              {content.stats.map((item, index) => (
                 <div
                   key={item.label}
-                  className="rounded-2xl border border-white/10 bg-white/5 p-4"
+                  className={`rounded-2xl border border-white/10 bg-white/5 p-4 ${
+                    index > 1 ? "hidden sm:block" : ""
+                  }`}
                 >
                   <p className="text-2xl font-semibold tracking-tight">{item.value}</p>
                   <p className="mt-1 text-sm text-slate-200">{item.label}</p>
@@ -349,10 +353,12 @@ export default function Home() {
           </h2>
         </div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {content.whyCards.map((item) => (
+          {content.whyCards.map((item, index) => (
             <article
               key={item.title}
-              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+              className={`rounded-2xl border border-slate-200 bg-white p-5 shadow-sm ${
+                index > 1 ? "hidden md:block" : ""
+              }`}
             >
               <h3 className="text-lg font-semibold text-slate-900">{item.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-slate-600">{item.body}</p>
@@ -396,10 +402,12 @@ export default function Home() {
           </h2>
         </div>
         <div className="grid gap-4 lg:grid-cols-3">
-          {content.useCases.map((item) => (
+          {content.useCases.map((item, index) => (
             <article
               key={item.title}
-              className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm"
+              className={`rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm ${
+                index > 1 ? "hidden lg:block" : ""
+              }`}
             >
               <h3 className="text-xl font-semibold text-slate-900">{item.title}</h3>
               <p className="mt-3 text-sm leading-relaxed text-slate-600">{item.body}</p>
@@ -423,10 +431,12 @@ export default function Home() {
             {content.featuresTitle}
           </h2>
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            {content.features.map((item) => (
+            {content.features.map((item, index) => (
               <div
                 key={item}
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-relaxed text-slate-700"
+                className={`rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-relaxed text-slate-700 ${
+                  index > 3 ? "hidden sm:block" : ""
+                }`}
               >
                 {item}
               </div>
@@ -445,10 +455,12 @@ export default function Home() {
             {content.securityBody}
           </p>
           <div className="mt-6 grid gap-3">
-            {content.securityItems.map((item) => (
+            {content.securityItems.map((item, index) => (
               <div
                 key={item}
-                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm"
+                className={`rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm ${
+                  index > 2 ? "hidden sm:block" : ""
+                }`}
               >
                 {item}
               </div>

@@ -223,8 +223,18 @@ export default function DoctorsPage() {
           </select>
         </label>
       </section>
-      <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-        <div className="flex flex-wrap gap-2">
+      <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-slate-900">
+              {locale === "bg-BG" ? "Нужен ти е бърз час?" : "Need a faster appointment?"}
+            </p>
+            <p className="text-xs leading-relaxed text-slate-500 sm:text-sm">
+              {locale === "bg-BG"
+                ? "Покажи само лекари с наличност в следващите 24 часа."
+                : "Show only doctors with open availability in the next 24 hours."}
+            </p>
+          </div>
           <button
             type="button"
             onClick={() => setEmergencyOnly((value) => !value)}
