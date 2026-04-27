@@ -401,8 +401,3 @@ where not exists (
 );
 
 commit;
-
--- Demo login note:
--- The seeded demo auth rows use password: CarePointDemo123!
--- Your real owner account fenabg47@gmail.com is never used as a demo persona,
--- and its profile name is restored to Bobo K when this script runs.
