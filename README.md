@@ -38,12 +38,16 @@ Resend API ключ, ако искате имейлите да работят
 git clone https://github.com/BoyanK1/carepoint.git
 cd carepoint
 npm install
+
 Акаунти:
 Администраторски акаунт - fenabg47@gmail.com
 Парола - Bobo2009
 
 Лекарски акаунт - demo.presentation.doctor@demo.carepoint.bg
 Парола - CarePointDoctor123!
+
+Акаунт на пациент - bobofiliqta21@gmail.com
+Парола - Bobo20091@
 
 Променливи на средата:
 Копирайте примерния файл и попълнете собствените си стойности:
