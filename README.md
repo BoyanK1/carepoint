@@ -1,69 +1,56 @@
-# CarePoint
+CarePoint е full-stack платформа за записване и управление на медицински прегледи, разработена с Next.js, TypeScript, NextAuth и Supabase.
 
-CarePoint is a full-stack medical appointment platform built with Next.js, TypeScript, NextAuth, and Supabase.
+Тя поддържа три основни роли:
 
-It supports three core roles:
-- patients who browse doctors, book appointments, track history, and receive notifications
-- doctors who manage their schedule, view appointments, and monitor activity
-- admins who review doctor applications and perform protected actions with MFA
+пациенти, които разглеждат лекари, записват часове, следят историята си и получават известия
+лекари, които управляват графика си, преглеждат записаните часове и следят активността
+администратори, които преглеждат кандидатурите на лекарите и извършват защитени действия чрез MFA
+Основни функционалности:
 
-## Main features
+откриване на лекари по име, специалност и град
+записване на час с валидация на свободните слотове
+управление на графика от страна на лекаря
+история на прегледите, известия, любими, ревюта и обратна връзка
+административен процес за одобряване на лекари
+MFA за чувствителни административни действия
+криптиране на чувствителни текстови полета, свързани с прегледите
+PostgreSQL база данни и storage чрез Supabase
+Технологичен стек:
 
-- doctor discovery by name, specialty, and city
-- appointment booking with slot validation
-- doctor-managed schedules
-- appointment history, notifications, favorites, reviews, and feedback
-- admin approval flow for doctors
-- MFA for admin-sensitive actions
-- encrypted sensitive appointment text fields
-- Supabase-backed PostgreSQL database and storage
+Next.js 16 (App Router)
+React 19
+TypeScript
+NextAuth
+Supabase (Postgres, Auth, Storage)
+Tailwind CSS
+Resend
+Vercel
+Изисквания:
+Преди да стартирате проекта, се уверете, че разполагате със:
 
-## Tech stack
+Node.js 20+
+npm
+Supabase проект
+Resend API ключ, ако искате имейлите да работят
+Изтегляне на проекта:
+Клонирайте хранилището и инсталирайте зависимостите:
 
-- Next.js 16 (App Router)
-- React 19
-- TypeScript
-- NextAuth
-- Supabase (Postgres, Auth, Storage)
-- Tailwind CSS
-- Resend
-- Vercel
-
-## Requirements
-
-Before you run the project, make sure you have:
-
-- Node.js 20+
-- npm
-- a Supabase project
-- a Resend API key if you want emails to work
-
-## Getting the project
-
-Clone the repository and install dependencies:
-
-```bash
 git clone https://github.com/BoyanK1/carepoint.git
 cd carepoint
 npm install
-```
-## Accounts
-Admin Account - fenabg47@gmail.com
-Password - Bobo2009
+Акаунти:
+Администраторски акаунт - fenabg47@gmail.com
+Парола - Bobo2009
 
-Doctor Account - demo.presentation.doctor@demo.carepoint.bg
-Password - CarePointDoctor123!
-## Environment variables
+Лекарски акаунт - demo.presentation.doctor@demo.carepoint.bg
+Парола - CarePointDoctor123!
 
-Copy the example file and fill in your own values:
+Променливи на средата:
+Копирайте примерния файл и попълнете собствените си стойности:
 
-```bash
 cp .env.example .env.local
-```
+Необходими променливи:
 
-Required variables:
-
-```env
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
@@ -78,37 +65,26 @@ GITHUB_SECRET=
 RESEND_API_KEY=
 FEEDBACK_TO_EMAIL=
 REMINDER_CRON_SECRET=
-```
+Бележки:
 
-Notes:
+NEXTAUTH_URL трябва да бъде http://localhost:3000 за локална работа.
+В production среда задайте NEXTAUTH_URL към реалния Vercel домейн.
+Ако APPOINTMENT_ENCRYPTION_KEY не е зададен, приложението ще използва NEXTAUTH_SECRET за криптиране на чувствителните полета.
+SUPABASE_SERVICE_ROLE_KEY е необходим за административни и server-side функционалности.
+Стартиране на проекта:
 
-- `NEXTAUTH_URL` should be `http://localhost:3000` for local work.
-- In production, set `NEXTAUTH_URL` to your real Vercel domain.
-- If `APPOINTMENT_ENCRYPTION_KEY` is not set, the app falls back to `NEXTAUTH_SECRET` for sensitive-field encryption.
-- `SUPABASE_SERVICE_ROLE_KEY` is required for admin/server features.
-
-
-```bash
 npm run dev
-```
+Локално стартиране в production режим:
 
-### Production-like local run
-
-```bash
 npm install
 npm run build
 npm start
-```
+Администрация и MFA:
 
-## Admin and MFA
+Административен панел: /admin
+MFA страница: /mfa
+За да повишите потребител до администратор ръчно:
 
-- Admin panel: `/admin`
-- MFA page: `/mfa`
-
-To promote a user to admin manually:
-
-```sql
 update user_profiles
 set role = 'admin'
 where id = '<auth_user_uuid>';
-```
