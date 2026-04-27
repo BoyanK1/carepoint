@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { createMfaToken, hashMfaCode } from "@/lib/mfa-token";
+import { getUserProfile } from "@/lib/profiles";
 import { consumeRateLimit } from "@/lib/security/rate-limit";
 import { hasTrustedOrigin } from "@/lib/security/request-guard";
 
@@ -18,6 +19,11 @@ export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const profile = await getUserProfile(session.user.id);
+  if (!profile || profile.role !== "admin") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const body = await request.json().catch(() => null);
