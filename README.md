@@ -31,9 +31,6 @@ Vercel
 Node.js 20+
 npm
 Supabase проект
-Resend API ключ, ако искате имейлите да работят
-Изтегляне на проекта:
-Клонирайте хранилището и инсталирайте зависимостите:
 
 git clone https://github.com/BoyanK1/carepoint.git
 cd carepoint
