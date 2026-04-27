@@ -100,17 +100,6 @@ npm run build
 npm start
 ```
 
-## What was verified locally
-
-The project was checked with:
-
-```bash
-npm run lint
-npx tsc --noEmit
-npm run build
-```
-
-
 ## Admin and MFA
 
 - Admin panel: `/admin`
